@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Wars Character Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: #000;
+            color: #E2E8F0;
+            overflow-x: hidden;
+            margin: 0;
+            height: 100vh;
+        }
+
+        h1, h2, h3, .sci-fi-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Starfield Canvas Background */
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Holocron Card Styling */
+        .holocron-card {
+            background: rgba(13, 17, 23, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .holocron-card:hover {
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.2), inset 0 0 0 1px rgba(56, 189, 248, 0.3);
+            border-color: rgba(56, 189, 248, 0.6);
+        }
+
+        /* Scan Line Animation */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .scanning .scan-line {
+            animation: scan 1.5s ease-in-out infinite;
+            opacity: 1;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* Button Glow */
+        .btn-glow {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-glow::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+            transform: scale(0);
+            transition: transform 0.1s ease-out;
+            pointer-events: none;
+        }
+
+        .btn-glow:active::after {
+            transform: scale(1);
+        }
+
+        /* Affiliation Colors */
+        .aff-jedi { color: #4ade80; text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); }
+        .aff-sith { color: #f87171; text-shadow: 0 0 10px rgba(248, 113, 113, 0.5); }
+        .aff-rebel { color: #fb923c; text-shadow: 0 0 10px rgba(251, 146, 60, 0.5); }
+        .aff-empire { color: #cbd5e1; text-shadow: 0 0 10px rgba(203, 213, 225, 0.5); }
+        .aff-mando { color: #60a5fa; text-shadow: 0 0 10px rgba(96, 165, 250, 0.5); }
+        .aff-scum { color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.5); }
+
+        .stat-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .stat-fill {
+            height: 100%;
+            background: currentColor;
+            width: 0%;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen relative">
+
+    <!-- Background Canvas -->
+    <canvas id="starfield"></canvas>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-md p-6 z-10 relative">
+        
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-yellow-400 tracking-wider mb-2" style="text-shadow: 0 0 15px rgba(250, 204, 21, 0.3);">GALACTIC ID</h1>
+            <p class="text-blue-300 text-sm tracking-widest uppercase opacity-80">Database Access Terminal v1.1.38</p>
+        </header>
+
+        <!-- Character Card -->
+        <div id="card-container" class="holocron-card rounded-2xl overflow-hidden relative min-h-[400px] flex flex-col">
+            <div class="scan-line"></div>
+            
+            <!-- Default State / Content -->
+            <div id="content-area" class="flex-1 p-6 flex flex-col items-center justify-center text-center">
+                
+                <!-- Initial Placeholder -->
+                <div id="placeholder-state" class="flex flex-col items-center animate-pulse">
+                    <i data-lucide="fingerprint" class="w-24 h-24 text-blue-500/30 mb-4"></i>
+                    <p class="text-blue-200/50 text-lg">Awaiting DNA Scan...</p>
+                </div>
+
+                <!-- Result State (Hidden by default) -->
+                <div id="result-state" class="hidden w-full">
+                    <div class="mb-2">
+                        <span id="char-affiliation-icon" class="inline-block p-2 rounded-full bg-white/5 mb-2">
+                            <!-- Icon injected by JS -->
+                        </span>
+                        <h2 id="char-name" class="text-3xl font-bold text-white mb-1">Character Name</h2>
+                        <p id="char-species" class="text-blue-400 text-sm tracking-widest uppercase">Species</p>
+                    </div>
+
+                    <div class="w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent my-4"></div>
+
+                    <div class="grid grid-cols-2 gap-4 text-left w-full mb-6">
+                        <div class="bg-blue-900/20 p-3 rounded-lg border border-blue-500/10">
+                            <p class="text-xs text-blue-400 uppercase mb-1">Homeworld</p>
+                            <p id="char-homeworld" class="font-semibold text-gray-200 truncate">Unknown</p>
+                        </div>
+                        <div class="bg-blue-900/20 p-3 rounded-lg border border-blue-500/10">
+                            <p class="text-xs text-blue-400 uppercase mb-1">Affiliation</p>
+                            <p id="char-affiliation" class="font-semibold text-gray-200 truncate">Unknown</p>
+                        </div>
+                        <div class="col-span-2 bg-blue-900/20 p-3 rounded-lg border border-blue-500/10">
+                            <p class="text-xs text-blue-400 uppercase mb-1">Notable Vehicle / Weapon</p>
+                            <p id="char-vehicle" class="font-semibold text-gray-200">Unknown</p>
+                        </div>
+                    </div>
+
+                    <!-- "Power Level" Bars purely for fun visual -->
+                    <div class="w-full text-left space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs text-blue-300 mb-1">
+                                <span>Force Sensitivity</span>
+                                <span id="stat-force-val">0%</span>
+                            </div>
+                            <div class="stat-bar"><div id="stat-force" class="stat-fill text-purple-500"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-blue-300 mb-1">
+                                <span>Combat Skill</span>
+                                <span id="stat-combat-val">0%</span>
+                            </div>
+                            <div class="stat-bar"><div id="stat-combat" class="stat-fill text-red-500"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer of card -->
+            <div class="p-4 bg-black/20 border-t border-white/5 flex justify-between items-center text-xs text-gray-500 font-mono">
+                <span id="id-code">ID: --</span>
+                <span class="flex items-center gap-1 text-green-500/70 hidden" id="status-indicator">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> ONLINE
+                </span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="mt-8 flex flex-col gap-4">
+            <button onclick="generateCharacter()" id="generate-btn" class="btn-glow w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xl rounded-lg shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:shadow-[0_0_30px_rgba(234,179,8,0.5)] transform hover:-translate-y-1 transition-all flex items-center justify-center gap-2 sci-fi-font">
+                <i data-lucide="scan-line" class="w-6 h-6"></i>
+                SCAN GALAXY
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        // --- 1. Starfield Background Logic ---
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let stars = [];
+        const numStars = 200;
+        let warpSpeed = 0;
+        let targetSpeed = 0.5;
+
+        class Star {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = (Math.random() - 0.5) * width;
+                this.y = (Math.random() - 0.5) * height;
+                this.z = Math.random() * width;
+                this.pz = this.z;
+            }
+            update() {
+                this.z = this.z - (10 + warpSpeed * 50);
+                if (this.z < 1) {
+                    this.reset();
+                    this.z = width;
+                    this.pz = this.z;
+                }
+            }
+            draw() {
+                const sx = (this.x / this.z) * width + width / 2;
+                const sy = (this.y / this.z) * height + height / 2;
+                
+                const px = (this.x / this.pz) * width + width / 2;
+                const py = (this.y / this.pz) * height + height / 2;
+
+                this.pz = this.z;
+
+                if (sx < 0 || sx > width || sy < 0 || sy > height) return;
+
+                const r = (1 - this.z / width) * 4 * (1 + warpSpeed);
+                
+                ctx.beginPath();
+                ctx.moveTo(px, py);
+                ctx.lineTo(sx, sy);
+                ctx.lineWidth = r > 4 ? 4 : r;
+                ctx.strokeStyle = `rgba(255, 255, 255, ${1 - this.z / width})`;
+                ctx.stroke();
+            }
+        }
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        function initStars() {
+            resize();
+            for(let i=0; i<numStars; i++) stars.push(new Star());
+            animate();
+        }
+
+        function animate() {
+            // Smooth speed transition
+            warpSpeed += (targetSpeed - warpSpeed) * 0.05;
+
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.save();
+            // Optional: rotate whole field slightly
+            // ctx.translate(width/2, height/2);
+            // ctx.rotate(Date.now() * 0.0001);
+            // ctx.translate(-width/2, -height/2);
+
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+            ctx.restore();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        initStars();
+
+
+        // --- 2. Character Data ---
+        const characters = [
+            { name: "Luke Skywalker", species: "Human", homeworld: "Tatooine", affiliation: "Jedi Order", type: "jedi", vehicle: "X-Wing Starfighter", force: 95, combat: 85 },
+            { name: "Darth Vader", species: "Human (Cyborg)", homeworld: "Tatooine", affiliation: "Galactic Empire", type: "sith", vehicle: "TIE Advanced x1", force: 98, combat: 95 },
+            { name: "Han Solo", species: "Human", homeworld: "Corellia", affiliation: "Rebel Alliance", type: "rebel", vehicle: "Millennium Falcon", force: 10, combat: 80 },
+            { name: "Yoda", species: "Unknown", homeworld: "Unknown", affiliation: "Jedi Order", type: "jedi", vehicle: "Jedi Council Hoverchair", force: 100, combat: 90 },
+            { name: "Boba Fett", species: "Human (Clone)", homeworld: "Kamino", affiliation: "Bounty Hunter Guild", type: "scum", vehicle: "Slave I", force: 5, combat: 92 },
+            { name: "Princess Leia", species: "Human", homeworld: "Alderaan", affiliation: "Rebel Alliance", type: "rebel", vehicle: "Tantive IV", force: 70, combat: 65 },
+            { name: "Obi-Wan Kenobi", species: "Human", homeworld: "Stewjon", affiliation: "Jedi Order", type: "jedi", vehicle: "Varactyl", force: 90, combat: 92 },
+            { name: "Emperor Palpatine", species: "Human", homeworld: "Naboo", affiliation: "Galactic Empire", type: "sith", vehicle: "Death Star II", force: 99, combat: 60 },
+            { name: "Chewbacca", species: "Wookiee", homeworld: "Kashyyyk", affiliation: "Rebel Alliance", type: "rebel", vehicle: "Millennium Falcon", force: 5, combat: 88 },
+            { name: "R2-D2", species: "Astromech Droid", homeworld: "Naboo", affiliation: "Rebel Alliance", type: "rebel", vehicle: "X-Wing Socket", force: 0, combat: 40 },
+            { name: "Ahsoka Tano", species: "Togruta", homeworld: "Shili", affiliation: "Rebel Alliance", type: "jedi", vehicle: "Jedi Shuttle", force: 88, combat: 93 },
+            { name: "Din Djarin", species: "Human", homeworld: "Aq Vetina", affiliation: "The Mandalorian", type: "mando", vehicle: "N-1 Starfighter", force: 5, combat: 94 },
+            { name: "Darth Maul", species: "Zabrak", homeworld: "Dathomir", affiliation: "Crimson Dawn", type: "sith", vehicle: "Sith Infiltrator", force: 85, combat: 96 },
+            { name: "Rey Skywalker", species: "Human", homeworld: "Jakku", affiliation: "Resistance", type: "jedi", vehicle: "Rey's Speeder", force: 92, combat: 85 },
+            { name: "Kylo Ren", species: "Human", homeworld: "Chandrila", affiliation: "First Order", type: "sith", vehicle: "TIE Silencer", force: 90, combat: 90 },
+            { name: "Mace Windu", species: "Human", homeworld: "Haruun Kal", affiliation: "Jedi Order", type: "jedi", vehicle: "Jedi Starfighter", force: 92, combat: 99 },
+            { name: "Jabba the Hutt", species: "Hutt", homeworld: "Nal Hutta", affiliation: "Hutt Cartel", type: "scum", vehicle: "Sail Barge", force: 0, combat: 10 },
+            { name: "Lando Calrissian", species: "Human", homeworld: "Socorro", affiliation: "Rebel Alliance", type: "rebel", vehicle: "Lady Luck", force: 0, combat: 75 },
+            { name: "General Grievous", species: "Kaleesh (Cyborg)", homeworld: "Kalee", affiliation: "Separatists", type: "empire", vehicle: "Wheel Bike", force: 0, combat: 94 },
+            { name: "C-3PO", species: "Protocol Droid", homeworld: "Tatooine", affiliation: "Rebel Alliance", type: "rebel", vehicle: "Escape Pod", force: 0, combat: 5 },
+            { name: "Padmé Amidala", species: "Human", homeworld: "Naboo", affiliation: "Galactic Republic", type: "rebel", vehicle: "Naboo Royal Starship", force: 5, combat: 60 },
+            { name: "Count Dooku", species: "Human", homeworld: "Serenno", affiliation: "Separatists", type: "sith", vehicle: "Solar Sailer", force: 93, combat: 94 },
+            { name: "Grand Admiral Thrawn", species: "Chiss", homeworld: "Csilla", affiliation: "Galactic Empire", type: "empire", vehicle: "Chimaera", force: 5, combat: 85 },
+            { name: "Grogu", species: "Unknown", homeworld: "Unknown", affiliation: "The Mandalorian", type: "jedi", vehicle: "Hover Pram", force: 85, combat: 10 },
+            { name: "Poe Dameron", species: "Human", homeworld: "Yavin 4", affiliation: "Resistance", type: "rebel", vehicle: "X-Wing Black One", force: 15, combat: 82 }
+        ];
+
+        // --- 3. App Logic ---
+        const btn = document.getElementById('generate-btn');
+        const container = document.getElementById('card-container');
+        const placeholder = document.getElementById('placeholder-state');
+        const result = document.getElementById('result-state');
+        const idCode = document.getElementById('id-code');
+        const statusInd = document.getElementById('status-indicator');
+        
+        let isScanning = false;
+
+        function getRandomChar() {
+            return characters[Math.floor(Math.random() * characters.length)];
+        }
+
+        function generateId() {
+            return 'ID: ' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+
+        function updateUI(char) {
+            // Colors based on type
+            const typeMap = {
+                'jedi': { class: 'aff-jedi', icon: 'sword' },
+                'sith': { class: 'aff-sith', icon: 'flame' },
+                'rebel': { class: 'aff-rebel', icon: 'star' },
+                'empire': { class: 'aff-empire', icon: 'hexagon' },
+                'mando': { class: 'aff-mando', icon: 'shield' },
+                'scum': { class: 'aff-scum', icon: 'skull' }
+            };
+
+            const config = typeMap[char.type] || typeMap['rebel'];
+
+            document.getElementById('char-name').textContent = char.name;
+            document.getElementById('char-species').textContent = char.species;
+            document.getElementById('char-homeworld').textContent = char.homeworld;
+            
+            const affEl = document.getElementById('char-affiliation');
+            affEl.textContent = char.affiliation;
+            affEl.className = `font-semibold text-gray-200 truncate ${config.class}`;
+
+            document.getElementById('char-vehicle').textContent = char.vehicle;
+            
+            // Icon
+            const iconContainer = document.getElementById('char-affiliation-icon');
+            iconContainer.innerHTML = `<i data-lucide="${config.icon}" class="${config.class}"></i>`;
+            lucide.createIcons();
+
+            // Stats animation
+            document.getElementById('stat-force-val').textContent = char.force + '%';
+            document.getElementById('stat-combat-val').textContent = char.combat + '%';
+            
+            // Reset widths for animation
+            document.getElementById('stat-force').style.width = '0%';
+            document.getElementById('stat-combat').style.width = '0%';
+            
+            // Force redraw/re-render for animation to trigger
+            setTimeout(() => {
+                document.getElementById('stat-force').style.width = char.force + '%';
+                document.getElementById('stat-combat').style.width = char.combat + '%';
+            }, 50);
+            
+            idCode.textContent = generateId();
+            statusInd.classList.remove('hidden');
+        }
+
+        function generateCharacter() {
+            if (isScanning) return;
+            isScanning = true;
+            
+            // 1. UI Feedback: Start Scanning
+            btn.innerHTML = `<span class="animate-spin">⟳</span> ACCESSING DATABASE...`;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            container.classList.add('scanning');
+            
+            // 2. Warp Speed Effect
+            targetSpeed = 5.0; // Fast stars
+
+            // 3. Wait and Reveal
+            setTimeout(() => {
+                // Pick character
+                const char = getRandomChar();
+                
+                // Hide placeholder, show result
+                placeholder.classList.add('hidden');
+                result.classList.remove('hidden');
+                
+                // Update content
+                updateUI(char);
+                
+                // Stop UI effects
+                targetSpeed = 0.5; // Normal stars
+                container.classList.remove('scanning');
+                btn.innerHTML = `<i data-lucide="scan-line" class="w-6 h-6"></i> SCAN GALAXY`;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                lucide.createIcons();
+                
+                isScanning = false;
+            }, 1200);
+        }
+
+        // Initialize icons
+        lucide.createIcons();
+
+    </script>
+</body>
+</html>
