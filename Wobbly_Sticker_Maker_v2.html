@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wobbly Sticker Maker</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Chewy&family=Luckiest+Guy&family=Patrick+Hand&family=Permanent+Marker&family=Titan+One&display=swap" rel="stylesheet">
+
+    <!-- gif.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 20px; height: 20px;
+            background: #000; cursor: pointer;
+            border-radius: 50%; border: 2px solid white;
+        }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #4f46e5; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #4f46e5; }
+
+        /* Small Toggles for Customization */
+        .mini-toggle:checked { background-color: #4f46e5; }
+
+        /* Phantom Input Styling */
+        #phantomInput {
+            color: transparent;
+            caret-color: transparent; 
+            outline: none;
+            white-space: pre-wrap;
+            word-break: break-word;
+            text-align: center;
+            line-height: 1.1;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #phantomInput::selection {
+            background: rgba(0, 0, 0, 0.1); 
+            color: transparent;
+        }
+
+        /* Menu Slide Animation */
+        #settingsMenu {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .menu-hidden { transform: translateX(100%); }
+        .menu-visible { transform: translateX(0); }
+
+        /* Smooth Background Transition */
+        body { transition: background-color 0.5s ease; }
+    </style>
+</head>
+<body class="min-h-screen font-sans text-slate-800 overflow-hidden flex flex-col relative supports-[min-height:100dvh]:min-h-[100dvh]">
+
+    <!-- Main Content Area (Centered Preview) -->
+    <main class="flex-grow flex items-center justify-center p-4 w-full h-full absolute inset-0">
+        
+        <!-- Preview Container -->
+        <div class="relative w-full max-w-2xl aspect-square flex items-center justify-center cursor-text" id="previewContainer" style="touch-action: none;">
+            
+            <!-- The Drawing Canvas -->
+            <canvas id="stickerCanvas" width="600" height="600" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+            
+            <!-- The Phantom Input -->
+            <div id="phantomInput" contenteditable="true" spellcheck="false" class="absolute inset-0 w-full h-full z-10 p-4 focus:outline-none" style="font-family: 'Chewy'; font-size: 100px;">wobble!</div>
+        
+            <!-- Playful Instructions (Static Text) -->
+            <!-- Updated positioning: higher on desktop (bottom-32), lower on mobile (bottom-24) to avoid overcrowding -->
+            <div id="typeHint" class="absolute bottom-24 md:bottom-32 left-0 right-0 z-20 pointer-events-none transition-opacity duration-500 flex justify-center opacity-100">
+                <p class="font-['Chewy'] text-xl md:text-2xl text-[#e500e5] tracking-wide drop-shadow-sm">Start Typing!</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Hamburger Button -->
+    <button id="menuBtn" class="fixed top-6 right-6 z-50 p-3 rounded-full transition-transform active:scale-95 group shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="transition-colors"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+
+    <!-- Quick Download Button -->
+    <button id="quickDownloadBtn" class="fixed top-24 right-6 z-50 p-3 rounded-full transition-transform active:scale-95 group shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="transition-colors"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+    </button>
+
+    <!-- Settings Menu Drawer -->
+    <div id="settingsMenu" class="fixed inset-y-0 right-0 w-full md:max-w-sm bg-white/95 backdrop-blur-xl shadow-2xl z-40 menu-hidden overflow-y-auto border-l border-white/20 pb-safe">
+        <div class="p-8 pt-24 space-y-8 pb-32">
+            
+            <h2 class="text-2xl font-black font-['Chewy'] text-slate-800 mb-6">Sticker Settings</h2>
+
+            <!-- Style Presets -->
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Style Presets</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button class="style-preset-btn bg-slate-100 hover:bg-slate-200 border-2 border-transparent focus:border-indigo-500 p-3 rounded-xl flex flex-col items-center gap-1 transition-all" data-preset="stroke">
+                        <div class="w-8 h-8 rounded-full border-2 border-black bg-white"></div>
+                        <span class="text-xs font-bold text-slate-600">Stroke</span>
+                    </button>
+                    <button class="style-preset-btn bg-slate-100 hover:bg-slate-200 border-2 border-transparent focus:border-indigo-500 p-3 rounded-xl flex flex-col items-center gap-1 transition-all" data-preset="block">
+                        <div class="w-8 h-8 rounded border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"></div>
+                        <span class="text-xs font-bold text-slate-600">Block</span>
+                    </button>
+                    <button class="style-preset-btn bg-slate-100 hover:bg-slate-200 border-2 border-transparent focus:border-indigo-500 p-3 rounded-xl flex flex-col items-center gap-1 transition-all" data-preset="thick">
+                        <div class="w-8 h-8 rounded-full border-4 border-black bg-white ring-2 ring-slate-300"></div>
+                        <span class="text-xs font-bold text-slate-600">Thick</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Customization Toggles -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Customize Layers</label>
+                
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-700">Outline</span>
+                    <input type="checkbox" id="toggleStroke" class="mini-toggle w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" checked>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-700">Block Shadow</span>
+                    <input type="checkbox" id="toggleBlock" class="mini-toggle w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-700">Thick Border</span>
+                    <input type="checkbox" id="toggleThick" class="mini-toggle w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Palettes -->
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Colors</label>
+                <div class="grid grid-cols-4 gap-3" id="paletteContainer">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+
+            <!-- Fonts -->
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Font Style</label>
+                <select id="fontSelect" class="w-full bg-slate-100 border-2 border-slate-200 rounded-xl p-3 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer">
+                    <option value="Chewy" selected>Chunky (Chewy)</option>
+                    <option value="Titan One">Titan (Bold)</option>
+                    <option value="Bangers">Comic (Bangers)</option>
+                    <option value="Luckiest Guy">Funky (Luckiest)</option>
+                    <option value="Permanent Marker">Sharpie (Permanent)</option>
+                    <option value="Patrick Hand">Clean (Patrick)</option>
+                </select>
+            </div>
+
+            <!-- Sliders -->
+            <div class="space-y-6">
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Size</label>
+                        <span class="text-xs font-mono text-slate-500" id="sizeVal">100px</span>
+                    </div>
+                    <input type="range" id="sizeRange" min="40" max="180" value="100" class="range-slider w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Alive-ness</label>
+                        <span class="text-xs font-mono text-slate-500" id="wobbleVal">Subtle</span>
+                    </div>
+                    <input type="range" id="wobbleRange" min="1" max="10" value="4" class="range-slider w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="pt-4">
+                <button id="exportBtn" class="w-full bg-slate-900 hover:bg-black text-white font-black py-4 rounded-xl text-lg shadow-lg transform hover:-translate-y-1 transition-all active:scale-95 flex justify-center items-center gap-2">
+                    Download GIF
+                </button>
+                <div class="h-6 mt-3">
+                     <div id="progressBar" class="w-full bg-slate-200 rounded-full h-1 hidden">
+                        <div id="progressFill" class="bg-indigo-600 h-1 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p id="statusText" class="text-center text-xs font-bold text-slate-400 mt-1"></p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Overlay to close menu -->
+    <div id="menuOverlay" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 hidden transition-opacity opacity-0"></div>
+
+    <!-- Generated GIF Modal -->
+    <div id="resultModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full text-center shadow-2xl animate-in fade-in zoom-in duration-300 relative">
+            <h2 class="text-2xl font-black text-slate-800 mb-4 font-['Chewy']">Your Sticker is Ready!</h2>
+            
+            <div class="relative mb-4 inline-block">
+                <img id="resultImg" src="" alt="Generated Sticker" class="max-h-64 mx-auto rounded-lg shadow-sm">
+                <!-- Loading Overlay inside Image -->
+                <div id="modalLoader" class="absolute inset-0 bg-white/90 flex flex-col items-center justify-center rounded-lg hidden">
+                    <svg class="animate-spin h-8 w-8 text-indigo-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-xs font-bold text-indigo-600 animate-pulse">Rendering HQ...</span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center mb-6 space-x-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <span class="text-sm font-bold text-slate-600">Transparent Background</span>
+                <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" name="toggle" id="transparentToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300"/>
+                    <label for="transparentToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label>
+                </div>
+            </div>
+            
+            <div class="flex gap-3">
+                <button id="closeModal" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-colors">Close</button>
+                <a id="downloadLink" href="#" download="my-wobbly-sticker.gif" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2">
+                    Save GIF
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * CONFIGURATION & STATE
+         */
+        const canvas = document.getElementById('stickerCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // Temp canvas for grid distortion logic
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+        
+        // Constants
+        const CANVAS_SIZE = 600; 
+        const FRAMES_PER_SECOND = 12; 
+        const TOTAL_LOOP_FRAMES = 4;
+        
+        // State
+        let animationId = null;
+        let lastDrawTime = 0;
+        let currentFrameIndex = 0;
+        let isPlaceholderActive = true; // Track if user has interacted
+        
+        // Render Settings
+        const renderConfig = {
+            showStroke: true,
+            showBlock: false,
+            showThick: false
+        };
+        
+        // Palettes (Simplified - Removed style-specific names)
+        const palettes = [
+            { bg: '#ffcc99', text: '#ff7f00', outline: '#e500e5', shadow: '#e500e5' }, 
+            { bg: '#F2CB05', text: '#395BBF', outline: '#395BBF', shadow: '#F22D1B' },
+            { bg: '#f3e8ff', text: '#ffff00', outline: '#000000', shadow: '#9333ea' },
+            { bg: '#fee2e2', text: '#ef4444', outline: '#050505', shadow: '#fca5a5' },
+            { bg: '#fdf4ff', text: '#d946ef', outline: '#4c0519', shadow: '#86efac' },
+            { bg: '#f0fdf4', text: '#15803d', outline: '#14532d', shadow: '#bbf7d0' },
+            { bg: '#ffffff', text: '#050505', outline: '#94a3b8', shadow: '#e2e8f0' },
+            { bg: '#f5f3ff', text: '#06b6d4', outline: '#4c1d95', shadow: '#f0abfc' },
+            { bg: '#fffbeb', text: '#050505', outline: '#050505', shadow: '#fcd34d' },
+            { bg: '#ecfeff', text: '#0e7490', outline: '#164e63', shadow: '#67e8f9' },
+            { bg: '#fff1f2', text: '#fb7185', outline: '#be123c', shadow: '#a5f3fc' },
+            { bg: '#0f172a', text: '#f8fafc', outline: '#000000', shadow: '#334155' },
+            // 8 New Trendy Combinations
+            { bg: '#1e1b4b', text: '#f472b6', outline: '#22d3ee', shadow: '#4c1d95' }, // Midnight Cyber
+            { bg: '#f5ebe0', text: '#4a3b32', outline: '#ffffff', shadow: '#d4a373' }, // Coffee Shop
+            { bg: '#000000', text: '#a3e635', outline: '#9333ea', shadow: '#3f6212' }, // Slime
+            { bg: '#bae6fd', text: '#db2777', outline: '#ffffff', shadow: '#fde047' }, // Candy
+            { bg: '#064e3b', text: '#fcd34d', outline: '#000000', shadow: '#78350f' }, // Forest
+            { bg: '#14b8a6', text: '#fef3c7', outline: '#f97316', shadow: '#ef4444' }, // 70s Retro
+            { bg: '#fcd34d', text: '#1e3a8a', outline: '#ffffff', shadow: '#b91c1c' }, // Royal
+            { bg: '#292524', text: '#e7e5e4', outline: '#06b6d4', shadow: '#db2777' }, // Glitch
+        ];
+
+        let currentPalette = palettes[0];
+        
+        // Input Elements
+        const phantomInput = document.getElementById('phantomInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const typeHint = document.getElementById('typeHint');
+        const fontSelect = document.getElementById('fontSelect');
+        const sizeRange = document.getElementById('sizeRange');
+        const sizeVal = document.getElementById('sizeVal');
+        const wobbleRange = document.getElementById('wobbleRange');
+        const wobbleVal = document.getElementById('wobbleVal');
+        const transparentToggle = document.getElementById('transparentToggle');
+        const exportBtn = document.getElementById('exportBtn');
+        const statusText = document.getElementById('statusText');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const paletteContainer = document.getElementById('paletteContainer');
+        const resultModal = document.getElementById('resultModal');
+        const resultImg = document.getElementById('resultImg');
+        const modalLoader = document.getElementById('modalLoader');
+        const closeModal = document.getElementById('closeModal');
+        const downloadLink = document.getElementById('downloadLink');
+        const menuBtn = document.getElementById('menuBtn');
+        const quickDownloadBtn = document.getElementById('quickDownloadBtn');
+        const settingsMenu = document.getElementById('settingsMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
+        
+        // New UI Elements
+        const toggleStroke = document.getElementById('toggleStroke');
+        const toggleBlock = document.getElementById('toggleBlock');
+        const toggleThick = document.getElementById('toggleThick');
+        const presetBtns = document.querySelectorAll('.style-preset-btn');
+
+        /**
+         * INITIALIZATION
+         */
+        function init() {
+            renderPalettes();
+            applyPaletteToBackground();
+            startLoop();
+            
+            // Focus input on load
+            phantomInput.focus();
+
+            setupEventListeners();
+            updatePhantomStyles();
+            
+            // Default to transparent OFF
+            transparentToggle.checked = false;
+        }
+
+        function setupEventListeners() {
+            // Menu Toggle
+            menuBtn.addEventListener('click', toggleMenu);
+            menuOverlay.addEventListener('click', toggleMenu);
+            
+            // Quick Download
+            quickDownloadBtn.addEventListener('click', generateGIF);
+
+            // Preview Interaction
+            previewContainer.addEventListener('click', () => {
+                if (document.activeElement !== phantomInput) {
+                    phantomInput.focus();
+                }
+            });
+
+            // PLACEHOLDER LOGIC: Replace on first keydown
+            phantomInput.addEventListener('keydown', (e) => {
+                if (!isPlaceholderActive) return;
+
+                // Ignore modifiers/navigation keys
+                const ignoreKeys = ['Shift', 'Control', 'Alt', 'Meta', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'CapsLock'];
+                if (ignoreKeys.includes(e.key)) return;
+
+                // Clear default text instantly if it's a typing action
+                phantomInput.textContent = '';
+                isPlaceholderActive = false;
+                typeHint.style.opacity = '0';
+            });
+            
+            // Render Toggles
+            const updateConfig = () => {
+                renderConfig.showStroke = toggleStroke.checked;
+                renderConfig.showBlock = toggleBlock.checked;
+                renderConfig.showThick = toggleThick.checked;
+            };
+            
+            toggleStroke.addEventListener('change', updateConfig);
+            toggleBlock.addEventListener('change', updateConfig);
+            toggleThick.addEventListener('change', updateConfig);
+            
+            // Presets
+            presetBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const preset = btn.dataset.preset;
+                    
+                    // Reset UI
+                    presetBtns.forEach(b => b.classList.remove('ring-2', 'ring-indigo-600', 'bg-indigo-50'));
+                    btn.classList.add('ring-2', 'ring-indigo-600', 'bg-indigo-50');
+                    
+                    // Apply Logic
+                    if (preset === 'stroke') {
+                        toggleStroke.checked = true;
+                        toggleBlock.checked = false;
+                        toggleThick.checked = false;
+                    } else if (preset === 'block') {
+                        toggleStroke.checked = true;
+                        toggleBlock.checked = true;
+                        toggleThick.checked = false;
+                    } else if (preset === 'thick') {
+                        toggleStroke.checked = true;
+                        toggleBlock.checked = false;
+                        toggleThick.checked = true;
+                    }
+                    updateConfig();
+                });
+            });
+            
+            // Controls
+            fontSelect.addEventListener('change', updatePhantomStyles);
+            
+            sizeRange.addEventListener('input', (e) => {
+                sizeVal.textContent = `${e.target.value}px`;
+                updatePhantomStyles();
+            });
+
+            wobbleRange.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                if(val === 0) wobbleVal.textContent = "None";
+                else if(val < 3) wobbleVal.textContent = "Subtle";
+                else if(val < 7) wobbleVal.textContent = "Active";
+                else wobbleVal.textContent = "Wild";
+            });
+
+            // If toggled inside the modal, regenerate immediately
+            transparentToggle.addEventListener('change', () => {
+                // Only trigger if modal is open, otherwise it's just a setting change
+                if (!resultModal.classList.contains('hidden')) {
+                    generateGIF();
+                }
+            });
+
+            exportBtn.addEventListener('click', generateGIF);
+            closeModal.addEventListener('click', () => {
+                resultModal.classList.add('hidden');
+                startLoop();
+            });
+        }
+
+        function toggleMenu() {
+            const isHidden = settingsMenu.classList.contains('menu-hidden');
+            if (isHidden) {
+                settingsMenu.classList.remove('menu-hidden');
+                settingsMenu.classList.add('menu-visible');
+                menuOverlay.classList.remove('hidden');
+                setTimeout(() => menuOverlay.classList.remove('opacity-0'), 10);
+            } else {
+                settingsMenu.classList.remove('menu-visible');
+                settingsMenu.classList.add('menu-hidden');
+                menuOverlay.classList.add('opacity-0');
+                setTimeout(() => menuOverlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function updatePhantomStyles() {
+            phantomInput.style.fontFamily = `"${fontSelect.value}"`;
+            phantomInput.style.fontSize = sizeRange.value + 'px';
+            phantomInput.style.lineHeight = '1.1';
+        }
+
+        function applyPaletteToBackground() {
+            document.body.style.backgroundColor = currentPalette.bg;
+            
+            const btnBg = currentPalette.text; // Simple button color logic
+            const btnStroke = currentPalette.bg;
+
+            menuBtn.style.backgroundColor = btnBg; 
+            const menuIcon = menuBtn.querySelector('svg');
+            if (menuIcon) {
+                menuIcon.style.stroke = btnStroke;
+                menuIcon.classList.remove('text-slate-800', 'group-hover:text-black'); 
+            }
+
+            quickDownloadBtn.style.backgroundColor = btnBg;
+            const dlIcon = quickDownloadBtn.querySelector('svg');
+            if (dlIcon) {
+                dlIcon.style.stroke = btnStroke;
+                dlIcon.classList.remove('text-slate-800', 'group-hover:text-black');
+            }
+        }
+
+        function renderPalettes() {
+            paletteContainer.innerHTML = '';
+            palettes.forEach((pal, index) => {
+                const btn = document.createElement('button');
+                btn.className = `w-full aspect-square rounded-xl border-2 transition-transform hover:scale-105 focus:outline-none flex items-center justify-center group relative overflow-hidden`;
+                
+                btn.style.backgroundColor = pal.bg;
+                btn.style.borderColor = index === palettes.indexOf(currentPalette) ? '#000' : 'transparent';
+                if (index === palettes.indexOf(currentPalette)) {
+                    btn.classList.add('ring-2', 'ring-offset-2', 'ring-slate-900');
+                }
+
+                const inner = document.createElement('div');
+                inner.className = 'w-1/2 h-1/2 rounded-full shadow-sm';
+                inner.style.backgroundColor = pal.text;
+                inner.style.border = `2px solid ${pal.outline}`;
+                
+                btn.appendChild(inner);
+
+                btn.addEventListener('click', () => {
+                    currentPalette = pal;
+                    applyPaletteToBackground();
+                    renderPalettes();
+                });
+                
+                paletteContainer.appendChild(btn);
+            });
+        }
+
+        function getGlobalJitter(intensity, fontSize, frameIndex, direction) {
+            if (intensity === 0) return { x: 0, y: 0 };
+            
+            const cycle = (frameIndex / TOTAL_LOOP_FRAMES) * (Math.PI * 2);
+            const amp = (intensity / 10) * (fontSize * 0.05); 
+            const noiseOffset = 1.5; 
+            
+            const x = Math.sin(cycle + noiseOffset) * amp * 0.5 * direction; 
+            const y = Math.cos(cycle + noiseOffset) * amp * 0.5;
+
+            return {
+                x: Math.round(x),
+                y: Math.round(y),
+                r: 0, 
+                s: 1  
+            };
+        }
+
+        // Modified to accept an optional 'scale' argument (defaults to 1 for preview)
+        function drawFrame(context, frameIndex, scale = 1) {
+            const width = context.canvas.width;
+            const height = context.canvas.height;
+            
+            let text = phantomInput.innerText;
+            if (!text || (text.trim() === "" && document.activeElement !== phantomInput)) text = " ";
+            
+            const lines = text.split('\n'); 
+            const baseFontSize = parseInt(sizeRange.value) * scale;
+            const font = fontSelect.value;
+            const intensity = parseInt(wobbleRange.value); 
+            const isTransparent = transparentToggle.checked;
+
+            context.clearRect(0, 0, width, height);
+
+            if (!isTransparent) {
+                context.fillStyle = currentPalette.bg;
+                context.fillRect(0, 0, width, height);
+            }
+            
+            const lineHeight = baseFontSize * 1.1;
+            const cellSize = Math.max(5, Math.floor(baseFontSize / 5)); 
+
+            // Prepare Layout Data
+            const layoutData = [];
+            lines.forEach((lineText, lineIndex) => {
+                context.font = `${baseFontSize}px "${font}"`;
+                const lineWidth = context.measureText(lineText).width;
+                let currentX = (width - lineWidth) / 2;
+                
+                const visualOffset = baseFontSize * 0.1;
+                
+                const lineY = (height - (lines.length * lineHeight)) / 2 + (lineHeight/2) + (lineIndex * lineHeight) + visualOffset;
+                
+                const charArray = lineText.split('');
+                const charData = charArray.map((char, charIdx) => {
+                    const charWidth = context.measureText(char).width;
+                    const direction = (charIdx % 2 === 0) ? 1 : -1;
+                    const jitter = getGlobalJitter(intensity, baseFontSize, frameIndex + charIdx * 3, direction);
+                    
+                    const item = {
+                        char,
+                        x: currentX,
+                        y: lineY,
+                        width: charWidth,
+                        jitter: jitter,
+                        direction: direction 
+                    };
+                    currentX += charWidth;
+                    return item;
+                });
+                layoutData.push(charData);
+            });
+
+            // === LAYER 1: THICK STROKE (Back) ===
+            if (renderConfig.showThick) {
+                layoutData.forEach(line => {
+                    line.forEach(item => {
+                        context.save();
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        context.font = `${baseFontSize}px "${font}"`;
+                        context.translate(item.x + (item.width/2) + item.jitter.x, item.y + item.jitter.y);
+                        
+                        context.strokeStyle = currentPalette.shadow; // Uses shadow color for thick stroke
+                        context.lineWidth = baseFontSize * 0.25; 
+                        context.lineJoin = 'round';
+                        context.miterLimit = 2;
+                        context.strokeText(item.char, 0, 0); 
+                        context.restore();
+                    });
+                });
+            }
+
+            // === LAYER 2: BLOCK SHADOW (Middle Back) ===
+            if (renderConfig.showBlock) {
+                layoutData.forEach(line => {
+                    line.forEach(item => {
+                        context.save();
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        context.font = `${baseFontSize}px "${font}"`;
+                        context.translate(item.x + (item.width/2) + item.jitter.x, item.y + item.jitter.y);
+                        context.rotate(item.jitter.r); 
+                        
+                        context.fillStyle = currentPalette.shadow;
+                        
+                        // Create deep 3D block trail
+                        const depth = baseFontSize * 0.15; 
+                        const steps = Math.ceil(depth); 
+                        
+                        for (let i = 1; i <= steps; i++) {
+                             context.fillText(item.char, i, i);
+                        }
+                        
+                        context.restore();
+                    });
+                });
+            }
+
+            // === LAYER 3: MAIN FILL (Middle Front) ===
+            layoutData.forEach((line, lineIndex) => {
+                line.forEach((item, charIndex) => {
+                    const char = item.char;
+                    const charWidth = item.width;
+                    
+                    const pad = baseFontSize * 0.5;
+                    const tempW = Math.ceil(charWidth + pad * 2);
+                    const tempH = Math.ceil(lineHeight + pad);
+                    if (tempCanvas.width < tempW) tempCanvas.width = tempW;
+                    if (tempCanvas.height < tempH) tempCanvas.height = tempH;
+                    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    tempCtx.font = `${baseFontSize}px "${font}"`;
+                    tempCtx.textAlign = 'center';
+                    tempCtx.textBaseline = 'middle';
+                    const tCX = tempW / 2;
+                    const tCY = tempH / 2;
+
+                    tempCtx.fillStyle = currentPalette.text;
+                    tempCtx.fillText(char, tCX, tCY);
+
+                    const cols = Math.ceil(tempW / cellSize);
+                    const rows = Math.ceil(tempH / cellSize);
+                    
+                    context.save();
+                    context.translate(item.x + (item.width/2) + item.jitter.x, item.y + item.jitter.y);
+                    context.rotate(item.jitter.r);
+                    
+                    const destXBase = -tCX;
+                    const destYBase = -tCY;
+
+                    const phase = (lineIndex * 10) + (charIndex * 5) + (char.charCodeAt(0)); 
+                    const direction = item.direction;
+
+                    for (let r = 0; r < rows; r++) {
+                        for (let c = 0; c < cols; c++) {
+                            const freq = 0.5; 
+                            const loopTime = (frameIndex / TOTAL_LOOP_FRAMES) * (Math.PI * 2);
+                            
+                            const waveX = Math.sin((r * freq) + phase + (loopTime * direction)); 
+                            const waveY = Math.cos((c * freq) + phase + (loopTime * direction));
+                            
+                            const jX = Math.round(waveX * (intensity * 0.5 * scale)); 
+                            const jY = Math.round(waveY * (intensity * 0.5 * scale));
+                            
+                            const sx = c * cellSize;
+                            const sy = r * cellSize;
+                            const sw = Math.min(cellSize, tempW - sx);
+                            const sh = Math.min(cellSize, tempH - sy);
+                            
+                            if (sw > 0 && sh > 0) {
+                                context.drawImage(
+                                    tempCanvas,
+                                    sx, sy, sw, sh, 
+                                    destXBase + sx + jX - 0.5, destYBase + sy + jY - 0.5, sw + 1, sh + 1
+                                );
+                            }
+                        }
+                    }
+                    context.restore();
+                });
+            });
+
+            // === LAYER 4: STANDARD STROKE (Front) ===
+            if (renderConfig.showStroke) {
+                layoutData.forEach(line => {
+                    line.forEach(item => {
+                        context.save();
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        context.font = `${baseFontSize}px "${font}"`;
+                        context.translate(item.x + (item.width/2) + item.jitter.x, item.y + item.jitter.y);
+                        context.rotate(item.jitter.r);
+                        context.strokeStyle = currentPalette.outline;
+                        context.lineWidth = baseFontSize * 0.03; 
+                        context.lineJoin = 'round';
+                        context.miterLimit = 2;
+                        context.strokeText(item.char, 0, 0); 
+                        context.restore();
+                    });
+                });
+            }
+        }
+
+        function startLoop() {
+            if(animationId) cancelAnimationFrame(animationId);
+            
+            function loop(timestamp) {
+                if (timestamp - lastDrawTime > (1000 / FRAMES_PER_SECOND)) {
+                    currentFrameIndex = (currentFrameIndex + 1) % TOTAL_LOOP_FRAMES;
+                    drawFrame(ctx, currentFrameIndex, 1); // Pass 1 scale for preview
+                    lastDrawTime = timestamp;
+                }
+                animationId = requestAnimationFrame(loop);
+            }
+            animationId = requestAnimationFrame(loop);
+        }
+
+        function generateGIF() {
+            cancelAnimationFrame(animationId); 
+            
+            resultModal.classList.remove('hidden');
+            modalLoader.classList.remove('hidden');
+            
+            setTimeout(() => {
+                exportBtn.disabled = true;
+                progressFill.style.width = '0%';
+
+                // SCALE SETTING: 3x Resolution for smoother edges
+                const exportScale = 3;
+
+                let text = phantomInput.innerText;
+                if (!text || (text.trim() === "" && document.activeElement !== phantomInput)) text = " ";
+                const lines = text.split('\n');
+                
+                // Use Scaled Font Size
+                const baseFontSize = parseInt(sizeRange.value) * exportScale;
+                const font = fontSelect.value;
+                
+                tempCtx.font = `${baseFontSize}px "${font}"`;
+                let maxLineWidth = 0;
+                lines.forEach(line => {
+                    const w = tempCtx.measureText(line).width;
+                    if (w > maxLineWidth) maxLineWidth = w;
+                });
+
+                const lineHeight = baseFontSize * 1.1;
+                const textHeight = lines.length * lineHeight;
+                const padding = Math.ceil(baseFontSize * 1.2); // Padding scales naturally via fontSize
+                
+                const gifWidth = Math.ceil(maxLineWidth + padding);
+                const gifHeight = Math.ceil(textHeight + padding);
+
+                const workerBlob = new Blob(
+                    [`importScripts('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js');`], 
+                    { type: 'application/javascript' }
+                );
+                const workerUrl = URL.createObjectURL(workerBlob);
+
+                const gif = new GIF({
+                    workers: 2,
+                    quality: 10,
+                    width: gifWidth,   
+                    height: gifHeight, 
+                    workerScript: workerUrl,
+                    transparent: transparentToggle.checked ? 0x000000 : null 
+                });
+
+                const exportCanvas = document.createElement('canvas');
+                exportCanvas.width = gifWidth;
+                exportCanvas.height = gifHeight;
+                const exportCtx = exportCanvas.getContext('2d', { willReadFrequently: true });
+
+                for (let i = 0; i < TOTAL_LOOP_FRAMES; i++) {
+                    // Pass exportScale to drawFrame
+                    drawFrame(exportCtx, i, exportScale);
+
+                    if (transparentToggle.checked) {
+                        const imageData = exportCtx.getImageData(0, 0, gifWidth, gifHeight);
+                        const data = imageData.data;
+                        for (let j = 0; j < data.length; j += 4) {
+                            const alpha = data[j + 3];
+                            // Slightly more aggressive threshold for high-res
+                            if (alpha < 150) { 
+                                data[j + 3] = 0;
+                            } else {
+                                data[j + 3] = 255;
+                            }
+                        }
+                        exportCtx.putImageData(imageData, 0, 0);
+                    }
+
+                    gif.addFrame(exportCanvas, { 
+                        copy: true,
+                        delay: 1000 / FRAMES_PER_SECOND,
+                        disposal: 2 
+                    });
+                }
+
+                gif.on('progress', function(p) {
+                    const percent = Math.round(p * 100);
+                    progressFill.style.width = `${percent}%`;
+                    statusText.textContent = `Rendering: ${percent}%`;
+                });
+
+                gif.on('finished', function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    resultImg.src = url;
+                    downloadLink.href = url;
+                    
+                    exportBtn.disabled = false;
+                    progressBar.classList.add('hidden');
+                    statusText.textContent = "";
+                    modalLoader.classList.add('hidden');
+                    URL.revokeObjectURL(workerUrl);
+                    
+                    startLoop();
+                });
+
+                gif.render();
+            }, 50);
+        }
+
+        // Boot
+        init();
+
+    </script>
+</body>
+</html>
