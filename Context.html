@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Context</title>
     <!-- Importing Courier Prime for that authentic typewriter look -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,6 +19,8 @@
             --accent-color: #d32f2f; /* Red for stamps/errors */
             --font-main: 'Courier Prime', monospace;
             --hint-text: #FDFBF7; /* Chalk white for hints */
+            --key-bg: #EAE6DE;
+            --key-active: #D6D2CA;
         }
 
         body {
@@ -33,6 +35,8 @@
             min-height: 100vh;
             transition: background-color 1.5s ease;
             overflow-x: hidden;
+            /* Prevent pull-to-refresh on mobile to keep app-feel */
+            overscroll-behavior: none; 
         }
 
         /* Container for the paper/document feel */
@@ -46,6 +50,7 @@
             align-items: center;
             position: relative;
             z-index: 1;
+            flex: 1; /* Take up available space */
         }
 
         /* --- TITLE BAR --- */
@@ -54,7 +59,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 30px; /* Increased slightly for visual balance */
+            margin-bottom: 20px;
             position: relative;
         }
 
@@ -85,7 +90,7 @@
         .help-trigger {
             position: absolute;
             right: 0;
-            top: 50%; /* Center vertically relative to the whole bar */
+            top: 50%;
             transform: translateY(-50%);
             background: transparent;
             border: 2px solid var(--text-color);
@@ -103,11 +108,6 @@
             transition: all 0.2s ease;
         }
 
-        .help-trigger:hover {
-            background-color: var(--text-color);
-            color: var(--bg-color);
-        }
-
         /* Header: Date and Case Number */
         header {
             width: 100%;
@@ -115,7 +115,7 @@
             justify-content: space-between;
             border-bottom: 2px solid var(--text-color);
             padding-bottom: 10px;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             font-size: 0.9rem;
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -139,7 +139,7 @@
             line-height: 2.2; 
             text-align: left;
             width: 100%;
-            margin-bottom: 60px;
+            margin-bottom: 40px;
             min-height: 150px; /* Prevent layout jump */
         }
 
@@ -177,10 +177,6 @@
             pointer-events: none;
         }
 
-        .redacted:hover {
-            transform: scale(1.05);
-        }
-
         /* Revealed State */
         .revealed {
             background-color: transparent;
@@ -196,7 +192,7 @@
             100% { background-color: transparent; }
         }
 
-        /* Input Area */
+        /* Input Area - Replaces native input */
         .input-area {
             width: 100%;
             position: relative;
@@ -207,22 +203,30 @@
             gap: 15px;
         }
 
-        input[type="text"] {
+        /* Custom Div that looks like an input */
+        #guess-display {
             width: 100%;
             background: transparent;
-            border: none;
             border-bottom: 4px solid var(--text-color);
             font-family: var(--font-main);
             font-size: 2rem;
             color: var(--text-color);
             padding: 10px 0;
-            outline: none;
+            min-height: 2.4rem;
             text-transform: uppercase;
+            display: flex;
+            align-items: center;
         }
 
-        input[type="text"]::placeholder {
-            color: rgba(34, 34, 34, 0.3);
+        /* Blinking cursor effect */
+        #guess-display.active-cursor::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+            opacity: 0.5;
+            margin-left: 2px;
         }
+
+        @keyframes blink { 50% { opacity: 0; } }
 
         /* Controls */
         .controls {
@@ -273,6 +277,54 @@
             20%, 80% { transform: translate3d(2px, 0, 0); }
             30%, 50%, 70% { transform: translate3d(-4px, 0, 0); border-bottom-color: var(--accent-color); }
             40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* --- KEYBOARD STYLES --- */
+        #keyboard-container {
+            width: 100%;
+            max-width: 700px;
+            padding: 10px 5px 30px 5px;
+            background-color: var(--bg-color);
+            z-index: 10;
+        }
+
+        .keyboard-row {
+            display: flex;
+            width: 100%;
+            margin: 0 auto 8px;
+            touch-action: manipulation;
+            justify-content: center;
+        }
+
+        .key {
+            font-family: var(--font-main);
+            font-weight: 700;
+            border: 1px solid var(--text-color);
+            background-color: var(--key-bg);
+            border-radius: 4px;
+            margin: 0 3px;
+            height: 52px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-transform: uppercase;
+            user-select: none;
+            cursor: pointer;
+            flex: 1;
+            font-size: 1.2rem;
+            transition: background-color 0.1s;
+            box-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+
+        .key:active {
+            background-color: var(--key-active);
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+
+        .key-wide {
+            flex: 1.5;
+            font-size: 0.9rem;
         }
 
         /* Win State Stamp */
@@ -445,13 +497,14 @@
         /* Mobile adjustments */
         @media (max-width: 600px) {
             .game-title { font-size: 2.2rem; }
-            #fact-display { font-size: 1.6rem; }
-            input[type="text"] { font-size: 1.5rem; }
-            header { margin-bottom: 40px; }
+            #fact-display { font-size: 1.6rem; margin-bottom: 20px; }
+            #guess-display { font-size: 1.5rem; }
+            header { margin-bottom: 20px; }
             #stamp { font-size: 2rem; border-width: 4px; }
             .modal-card { padding: 25px; width: 85%; }
             .modal-header { font-size: 1.5rem; }
             .stat-value { font-size: 2rem; }
+            .key { height: 45px; font-size: 1.1rem; margin: 0 2px;}
         }
     </style>
 </head>
@@ -481,13 +534,17 @@
         <div id="stamp">DECLASSIFIED</div>
 
         <div class="input-area">
-            <input type="text" id="guess-input" placeholder="TYPE TO DECRYPT..." autocomplete="off" spellcheck="false" autofocus>
+            <!-- Replaced input with a display div to prevent native keyboard -->
+            <div id="guess-display" class="active-cursor"></div>
             <div class="controls">
                 <div id="missed-words"></div>
                 <button id="hint-btn">REQ. INTEL</button>
             </div>
         </div>
     </div>
+
+    <!-- Keyboard Container (Outside main container to stick to bottom if needed, or inside flow) -->
+    <div id="keyboard-container"></div>
 
     <!-- Help Modal -->
     <div id="help-modal" class="modal-overlay">
@@ -530,7 +587,6 @@
 
     <script>
         // --- 1. THE DATA SOURCE ---
-        // Contains 50 distinct facts. To extend to 365, add more objects with the same structure.
         const dailyFacts = [
             { id: 1, fact: "Honey never spoils.", targets: ["Honey", "spoils"], category: "FOOD SCIENCE", aliases: { "rots": "spoils", "decays": "spoils" } },
             { id: 2, fact: "Octopuses have three hearts.", targets: ["Octopuses", "three", "hearts"], category: "MARINE BIOLOGY", aliases: { "octopi": "octopuses", "3": "three" } },
@@ -594,7 +650,6 @@
             const dayOfYear = Math.floor(diff / oneDay);
 
             // Cycle through available facts based on the day of the year
-            // This ensures it never breaks even if we don't have exactly 365 facts
             const factIndex = (dayOfYear - 1) % dailyFacts.length; 
             const fact = dailyFacts[factIndex];
 
@@ -608,10 +663,11 @@
         // --- 3. GAME INITIALIZATION ---
         const currentFactObj = getFactOfTheDay();
         const displayContainer = document.getElementById('fact-display');
-        const inputField = document.getElementById('guess-input');
+        const guessDisplay = document.getElementById('guess-display');
         const missedDisplay = document.getElementById('missed-words');
         const hintBtn = document.getElementById('hint-btn');
         const shareBtn = document.getElementById('final-share-btn');
+        const keyboardContainer = document.getElementById('keyboard-container');
         
         // Modal Elements
         const helpBtn = document.getElementById('help-btn');
@@ -620,6 +676,7 @@
         
         let remainingRedactions = 0;
         const hintedWords = new Set();
+        let currentGuess = ""; // Store current input here
         
         // Stats Variables
         let startTime;
@@ -635,8 +692,6 @@
                 const span = document.createElement('span');
                 span.classList.add('word');
                 
-                // Animation removed for instant load
-
                 const cleanWord = word.replace(/[^\w\s-]/g, ''); 
                 const isTarget = currentFactObj.targets.some(target => 
                     target.toLowerCase() === cleanWord.toLowerCase()
@@ -651,17 +706,104 @@
                 span.textContent = word;
                 displayContainer.appendChild(span);
             });
+
+            // Initialize Keyboard
+            createKeyboard();
+            
+            // Add Global Key Listener for physical keyboard
+            document.addEventListener('keydown', handlePhysicalKey);
         }
 
-        // --- 4. GAMEPLAY MECHANICS ---
+        // --- 4. INPUT & KEYBOARD LOGIC ---
 
-        inputField.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                const guess = inputField.value.trim().toLowerCase();
-                if (guess) checkGuess(guess);
-                inputField.value = ''; 
+        function createKeyboard() {
+            const layout = [
+                "QWERTYUIOP",
+                "ASDFGHJKL",
+                "ZXCVBNM"
+            ];
+
+            layout.forEach((rowStr, index) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'keyboard-row';
+                
+                // Add margins for middle and bottom rows to center them nicely
+                if (index === 1) {
+                    // spacer for middle row if needed, or just flex center
+                }
+
+                const keys = rowStr.split('');
+                
+                // Add ENTER key at start of last row
+                if (index === 2) {
+                    const enterKey = document.createElement('button');
+                    enterKey.className = 'key key-wide';
+                    enterKey.textContent = 'ENTER';
+                    enterKey.onclick = submitGuess;
+                    rowDiv.appendChild(enterKey);
+                }
+
+                keys.forEach(char => {
+                    const keyBtn = document.createElement('button');
+                    keyBtn.className = 'key';
+                    keyBtn.textContent = char;
+                    keyBtn.onclick = () => handleInput(char);
+                    rowDiv.appendChild(keyBtn);
+                });
+
+                // Add BACKSPACE key at end of last row
+                if (index === 2) {
+                    const backKey = document.createElement('button');
+                    backKey.className = 'key key-wide';
+                    backKey.innerHTML = '&#9003;'; // Backspace symbol
+                    backKey.onclick = handleDelete;
+                    rowDiv.appendChild(backKey);
+                }
+
+                keyboardContainer.appendChild(rowDiv);
+            });
+        }
+
+        function handlePhysicalKey(e) {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+            const key = e.key.toUpperCase();
+            
+            if (key === 'ENTER') {
+                submitGuess();
+            } else if (key === 'BACKSPACE') {
+                handleDelete();
+            } else if (/^[A-Z]$/.test(key)) {
+                handleInput(key);
             }
-        });
+        }
+
+        function handleInput(char) {
+            if (currentGuess.length < 20) { // Limit length
+                currentGuess += char;
+                updateDisplay();
+            }
+        }
+
+        function handleDelete() {
+            currentGuess = currentGuess.slice(0, -1);
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            guessDisplay.textContent = currentGuess;
+        }
+
+        function submitGuess() {
+            const guess = currentGuess.trim().toLowerCase();
+            if (guess) {
+                checkGuess(guess);
+                currentGuess = "";
+                updateDisplay();
+            }
+        }
+
+        // --- 5. GAMEPLAY MECHANICS ---
 
         hintBtn.addEventListener('click', () => {
             const hiddenWords = Array.from(document.querySelectorAll('.redacted'))
@@ -713,9 +855,9 @@
         }
 
         function handleIncorrectGuess(guess) {
-            inputField.classList.remove('shake');
-            void inputField.offsetWidth; 
-            inputField.classList.add('shake');
+            guessDisplay.classList.remove('shake');
+            void guessDisplay.offsetWidth; 
+            guessDisplay.classList.add('shake');
 
             missedDisplay.textContent = `NO MATCH FOR "${guess.toUpperCase()}"`;
             setTimeout(() => {
@@ -738,10 +880,9 @@
             document.body.style.backgroundColor = 'var(--win-bg-color)';
             
             // Lock inputs
-            inputField.blur();
-            inputField.disabled = true;
-            inputField.placeholder = "CASE CLOSED";
-            inputField.style.borderBottomColor = "transparent";
+            guessDisplay.classList.remove('active-cursor'); // Stop blinking cursor
+            document.removeEventListener('keydown', handlePhysicalKey); // Stop typing
+            keyboardContainer.style.display = 'none'; // Hide keyboard
             
             hintBtn.style.display = 'none';
             missedDisplay.style.display = 'none';
@@ -773,7 +914,7 @@
             openModal(endScreen);
         }
 
-        // --- 5. MODAL LOGIC ---
+        // --- 6. MODAL LOGIC ---
         function openModal(modal) {
             modal.style.display = "flex";
             setTimeout(() => {
@@ -804,7 +945,7 @@
             }
         });
 
-        // --- 6. SHARE LOGIC ---
+        // --- 7. SHARE LOGIC ---
         shareBtn.addEventListener('click', async () => {
             const caseId = String(currentFactObj.id).padStart(3, '0');
             const timeVal = document.getElementById('stat-time').textContent;
@@ -831,8 +972,6 @@
                     });
                     return; // Exit if share was successful/initiated
                 } catch (err) {
-                    // User canceled or share failed. 
-                    // We typically stop here, or you could fallback.
                     if (err.name !== 'AbortError') {
                         console.error('Share API error:', err);
                     }
