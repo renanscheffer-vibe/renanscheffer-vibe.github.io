@@ -256,6 +256,8 @@
             color: #999;
             font-style: italic;
             height: 20px;
+            text-align: right;
+            flex-grow: 1; /* Helps push content if needed */
         }
 
         .shake {
@@ -554,8 +556,8 @@
             <!-- Replaced input with a display div to prevent native keyboard -->
             <div id="guess-display" class="active-cursor"></div>
             <div class="controls">
-                <div id="missed-words"></div>
                 <button id="hint-btn">REQ. INTEL</button>
+                <div id="missed-words"></div>
             </div>
         </div>
     </div>
