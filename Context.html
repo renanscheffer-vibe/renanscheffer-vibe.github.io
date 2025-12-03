@@ -24,9 +24,6 @@
             --key-bg: #EAE6DE;
             --key-border: #888;
             --key-active: #D6D2CA;
-            --key-action-bg: #CFD8DC; /* Muted Blue-Grey for Enter */
-            --key-action-active: #B0BEC5;
-            --ios-kbd-bg: #D1D5DB; /* iOS System Gray */
         }
 
         body {
@@ -275,6 +272,51 @@
         /* --- KEYBOARD STYLES (DEFAULT HIDDEN ON DESKTOP) --- */
         #keyboard-container {
             display: none;
+            width: 100%;
+            max-width: 700px;
+            padding: 10px 5px 30px 5px;
+            background-color: var(--bg-color);
+            z-index: 10;
+        }
+
+        .keyboard-row {
+            display: flex;
+            width: 100%;
+            margin: 0 auto 8px;
+            touch-action: manipulation;
+            justify-content: center;
+        }
+
+        .key {
+            font-family: var(--font-main);
+            font-weight: 700;
+            border: 1px solid var(--text-color);
+            background-color: var(--key-bg);
+            border-radius: 4px;
+            margin: 0 3px;
+            height: 52px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-transform: uppercase;
+            user-select: none;
+            cursor: pointer;
+            flex: 1;
+            font-size: 1.2rem;
+            transition: background-color 0.1s;
+            box-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+            color: var(--text-color);
+        }
+
+        .key:active {
+            background-color: var(--key-active);
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+
+        .key-wide {
+            flex: 1.5;
+            font-size: 0.9rem;
         }
 
         /* Win State Stamp */
@@ -453,88 +495,27 @@
             .stat-value { font-size: 2rem; }
 
             .container {
-                padding-bottom: 280px; /* More space for taller keyboard */
+                /* Add padding so the keyboard doesn't overlap the hint button */
+                padding-bottom: 100px;
             }
 
-            /* --- iOS STYLE KEYBOARD --- */
+            /* Show keyboard on mobile */
             #keyboard-container {
                 display: block;
-                width: 100%;
-                background-color: var(--ios-kbd-bg);
-                padding: 6px 3px 25px 3px;
                 position: fixed;
                 bottom: 0;
                 left: 0;
-                z-index: 1000;
-                box-shadow: 0 -1px 0 rgba(0,0,0,0.1);
-            }
-
-            .keyboard-row {
-                display: flex;
                 width: 100%;
-                margin: 0 auto 8px; /* Slightly more vertical spacing */
-                touch-action: manipulation;
-                justify-content: center;
+                background-color: var(--bg-color);
+                border-top: 2px solid var(--text-color);
+                padding-top: 10px;
+                padding-bottom: 20px;
             }
-
+            
             .key {
-                /* REVERTING TO TYPEWRITER STYLE */
-                font-family: var(--font-main);
-                font-weight: 700;
-                border: 1px solid var(--key-border);
-                background-color: var(--key-bg); /* Beige */
-                color: var(--text-color) !important;
-                border-radius: 4px; 
-                margin: 0 3px;
-                height: 54px; /* Taller keys requested */
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                text-transform: uppercase;
-                user-select: none;
-                cursor: pointer;
-                flex: 1;
-                font-size: 1.4rem;
-                box-shadow: 0 2px 0 rgba(0,0,0,0.15); /* Nice chunky shadow */
-                transition: transform 0.1s, box-shadow 0.1s;
-                -webkit-tap-highlight-color: transparent;
-            }
-
-            .key:active {
-                background-color: var(--key-active);
-                transform: translateY(2px);
-                box-shadow: none;
-            }
-
-            .key-wide {
-                flex: 1.5;
-                font-size: 1rem;
-            }
-
-            /* Spacer keys to help layout */
-            .key-spacer {
-                flex: 0.5; 
-                visibility: hidden;
-                pointer-events: none;
-                margin: 0 1px;
-            }
-            
-            .key-spacer-large {
-                flex: 2;
-                visibility: hidden;
-                pointer-events: none;
-            }
-
-            /* ENTER Key Highlight */
-            .key-enter {
-                background-color: var(--key-action-bg);
-                border-color: #90A4AE;
-                flex: 1.5;
-                font-size: 1rem;
-            }
-            
-            .key-enter:active {
-                background-color: var(--key-action-active);
+                height: 48px; /* Slightly shorter for mobile density */
+                font-size: 1.1rem;
+                margin: 0 2px;
             }
         }
     </style>
@@ -748,78 +729,46 @@
         // --- 4. INPUT & KEYBOARD LOGIC ---
 
         function createKeyboard() {
-            // Row 1
-            const row1 = document.createElement('div');
-            row1.className = 'keyboard-row';
-            "QWERTYUIOP".split('').forEach(char => {
-                row1.appendChild(createKey(char));
+            const layout = [
+                "QWERTYUIOP",
+                "ASDFGHJKL",
+                "ZXCVBNM"
+            ];
+
+            layout.forEach((rowStr, index) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'keyboard-row';
+                
+                const keys = rowStr.split('');
+                
+                // Add ENTER key at start of last row
+                if (index === 2) {
+                    const enterKey = document.createElement('button');
+                    enterKey.className = 'key key-wide';
+                    enterKey.textContent = 'ENTER';
+                    enterKey.onclick = submitGuess;
+                    rowDiv.appendChild(enterKey);
+                }
+
+                keys.forEach(char => {
+                    const keyBtn = document.createElement('button');
+                    keyBtn.className = 'key';
+                    keyBtn.textContent = char;
+                    keyBtn.onclick = () => handleInput(char);
+                    rowDiv.appendChild(keyBtn);
+                });
+
+                // Add BACKSPACE key at end of last row
+                if (index === 2) {
+                    const backKey = document.createElement('button');
+                    backKey.className = 'key key-wide';
+                    backKey.innerHTML = '&#9003;'; // Backspace symbol
+                    backKey.onclick = handleDelete;
+                    rowDiv.appendChild(backKey);
+                }
+
+                keyboardContainer.appendChild(rowDiv);
             });
-            keyboardContainer.appendChild(row1);
-
-            // Row 2 (Padded for visual center)
-            const row2 = document.createElement('div');
-            row2.className = 'keyboard-row';
-            // Spacer to indent row 2
-            const spacerL = document.createElement('div');
-            spacerL.className = 'key-spacer';
-            row2.appendChild(spacerL);
-            
-            "ASDFGHJKL".split('').forEach(char => {
-                row2.appendChild(createKey(char));
-            });
-            
-            const spacerR = document.createElement('div');
-            spacerR.className = 'key-spacer';
-            row2.appendChild(spacerR);
-            keyboardContainer.appendChild(row2);
-
-            // Row 3 (Shift placeholder + Z-M + Backspace)
-            const row3 = document.createElement('div');
-            row3.className = 'keyboard-row';
-            
-            // "Shift" visual placeholder (empty/spacer)
-            const shiftSpacer = document.createElement('div');
-            shiftSpacer.className = 'key-spacer'; 
-            shiftSpacer.style.flex = "1.5"; // Match Backspace width roughly
-            row3.appendChild(shiftSpacer);
-
-            "ZXCVBNM".split('').forEach(char => {
-                row3.appendChild(createKey(char));
-            });
-
-            // Backspace Key
-            const backKey = document.createElement('button');
-            backKey.className = 'key key-wide';
-            backKey.innerHTML = '&#9003;'; // Backspace symbol
-            backKey.onclick = handleDelete;
-            row3.appendChild(backKey);
-            keyboardContainer.appendChild(row3);
-
-            // Row 4 (Spacebar + Enter on Right)
-            const row4 = document.createElement('div');
-            row4.className = 'keyboard-row';
-
-            // Large spacer to push Enter to the right
-            const largeSpacer = document.createElement('div');
-            largeSpacer.className = 'key-spacer-large';
-            row4.appendChild(largeSpacer);
-
-            // Enter Key
-            const enterKey = document.createElement('button');
-            enterKey.className = 'key key-enter'; // Highlighted class
-            enterKey.textContent = 'ENTER';
-            enterKey.onclick = submitGuess;
-            row4.appendChild(enterKey);
-            
-            keyboardContainer.appendChild(row4);
-        }
-
-        function createKey(char) {
-            const btn = document.createElement('button');
-            btn.className = 'key';
-            btn.textContent = char;
-            btn.onclick = () => handleInput(char);
-            return btn;
         }
 
         function handlePhysicalKey(e) {
