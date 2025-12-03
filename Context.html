@@ -495,8 +495,8 @@
             .stat-value { font-size: 2rem; }
 
             .container {
-                /* Add padding so the keyboard doesn't overlap the hint button */
-                padding-bottom: 100px;
+                /* Add significant padding so the keyboard doesn't overlap the hint button */
+                padding-bottom: 320px; 
             }
 
             /* Show keyboard on mobile */
@@ -508,10 +508,15 @@
                 width: 100%;
                 background-color: var(--bg-color);
                 border-top: 2px solid var(--text-color);
-                padding-top: 10px;
-                padding-bottom: 20px;
+                padding: 10px 5px 20px 5px; /* Added spacing */
+                box-sizing: border-box; /* Ensure padding doesn't push width out */
             }
             
+            .keyboard-row {
+                width: 96%; /* Prevent touching edges */
+                margin: 0 auto 8px; /* Center rows */
+            }
+
             .key {
                 height: 48px; /* Slightly shorter for mobile density */
                 font-size: 1.1rem;
