@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context</title>
+    <!-- Importing Courier Prime for that authentic typewriter look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #FDFBF7; /* Manila/Cream */
+            --text-color: #222222; /* Dark Charcoal */
+            --redact-color: #222222; /* Solid Charcoal Bars */
+            --highlight-color: #FFFF00; /* Highlighter Yellow */
+            --win-bg-color: #E0F2F1; /* Soft Mint Green */
+            --accent-color: #d32f2f; /* Red for stamps/errors */
+            --font-main: 'Courier Prime', monospace;
+            --hint-text: #FDFBF7; /* Chalk white for hints */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 1.5s ease;
+            overflow-x: hidden;
+        }
+
+        /* Container for the paper/document feel */
+        .container {
+            width: 100%;
+            max-width: 700px;
+            padding: 20px 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* --- TITLE BAR --- */
+        .title-bar {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px; /* Increased slightly for visual balance */
+            position: relative;
+        }
+
+        .title-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-title {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: 5px;
+            margin: 0;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+
+        .game-subtitle {
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            margin-top: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            opacity: 0.6;
+        }
+
+        .help-trigger {
+            position: absolute;
+            right: 0;
+            top: 50%; /* Center vertically relative to the whole bar */
+            transform: translateY(-50%);
+            background: transparent;
+            border: 2px solid var(--text-color);
+            color: var(--text-color);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-family: var(--font-main);
+            font-weight: 700;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .help-trigger:hover {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        /* Header: Date and Case Number */
+        header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--text-color);
+            padding-bottom: 10px;
+            margin-bottom: 40px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        /* Subject Line */
+        #subject-line {
+            width: 100%;
+            text-align: left;
+            font-weight: 700;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* The Main Fact Display */
+        #fact-display {
+            font-size: 2.2rem;
+            line-height: 2.2; 
+            text-align: left;
+            width: 100%;
+            margin-bottom: 60px;
+            min-height: 150px; /* Prevent layout jump */
+        }
+
+        /* The Word Spans */
+        .word {
+            display: inline-block;
+            margin: 0 6px;
+            position: relative;
+            padding: 4px 2px;
+            line-height: 1.1;
+            transition: all 0.3s ease;
+        }
+
+        /* Redacted State */
+        .redacted {
+            background-color: var(--redact-color);
+            color: var(--redact-color);
+            border-radius: 0px;
+            cursor: default;
+            user-select: none;
+            min-width: 1ch;
+        }
+
+        /* Hint Logic */
+        .redacted[data-hint]::before {
+            content: attr(data-hint);
+            position: absolute;
+            left: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--hint-text);
+            font-weight: 700;
+            font-size: 1em;
+            font-family: var(--font-main);
+            pointer-events: none;
+        }
+
+        .redacted:hover {
+            transform: scale(1.05);
+        }
+
+        /* Revealed State */
+        .revealed {
+            background-color: transparent;
+            color: var(--text-color);
+            animation: highlightPop 0.6s ease-out forwards;
+            font-weight: 700;
+        }
+
+        @keyframes highlightPop {
+            0% { background-color: var(--redact-color); color: var(--redact-color); }
+            10% { background-color: var(--highlight-color); color: var(--text-color); }
+            70% { background-color: var(--highlight-color); }
+            100% { background-color: transparent; }
+        }
+
+        /* Input Area */
+        .input-area {
+            width: 100%;
+            position: relative;
+            margin-top: auto; 
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 4px solid var(--text-color);
+            font-family: var(--font-main);
+            font-size: 2rem;
+            color: var(--text-color);
+            padding: 10px 0;
+            outline: none;
+            text-transform: uppercase;
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(34, 34, 34, 0.3);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 10px;
+        }
+
+        #hint-btn {
+            background: transparent;
+            border: 2px solid var(--text-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            font-weight: 700;
+            padding: 8px 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        #hint-btn:hover {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        #hint-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: #999;
+            color: #999;
+        }
+
+        #missed-words {
+            font-size: 0.9rem;
+            color: #999;
+            font-style: italic;
+            height: 20px;
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); border-bottom-color: var(--accent-color); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Win State Stamp */
+        #stamp {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            border: 6px solid var(--accent-color);
+            padding: 20px 40px;
+            color: var(--accent-color);
+            font-size: 3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            mix-blend-mode: multiply;
+        }
+
+        .stamp-visible {
+            display: block !important;
+            animation: stampSlam 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes stampSlam {
+            0% { transform: translate(-50%, -50%) scale(3) rotate(-15deg); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1) rotate(-15deg); opacity: 0.8; }
+        }
+
+        /* --- MODALS (Shared Styles) --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(34, 34, 34, 0.85);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .modal-card {
+            background-color: #FDFBF7;
+            width: 90%;
+            max-width: 500px;
+            padding: 40px;
+            border: 4px solid var(--text-color);
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.2);
+            position: relative;
+            transform: translateY(20px);
+            transition: transform 0.5s ease;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+        }
+
+        .modal-overlay.visible .modal-card {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            font-size: 2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--text-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            font-family: var(--font-main);
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        /* Help Modal Specifics */
+        .help-list {
+            list-style-type: none;
+            padding: 0;
+            text-align: left;
+        }
+        
+        .help-list li {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            line-height: 1.4;
+        }
+
+        .help-list strong {
+            text-transform: uppercase;
+            text-decoration: underline;
+        }
+
+        /* End Screen Specifics */
+        .report-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+            color: #555;
+        }
+
+        .congrats-msg {
+            font-size: 1rem;
+            font-style: italic;
+            margin-bottom: 30px;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        /* Share Button */
+        #final-share-btn {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+            border: none;
+            width: 100%;
+            padding: 15px;
+            font-family: var(--font-main);
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: transform 0.2s ease, background-color 0.2s;
+        }
+
+        #final-share-btn:hover {
+            transform: scale(1.02);
+            background-color: #000;
+        }
+
+        #final-share-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+            .game-title { font-size: 2.2rem; }
+            #fact-display { font-size: 1.6rem; }
+            input[type="text"] { font-size: 1.5rem; }
+            header { margin-bottom: 40px; }
+            #stamp { font-size: 2rem; border-width: 4px; }
+            .modal-card { padding: 25px; width: 85%; }
+            .modal-header { font-size: 1.5rem; }
+            .stat-value { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div class="title-bar">
+            <div class="title-wrapper">
+                <h1 class="game-title">CONTEXT</h1>
+                <div class="game-subtitle">DECRYPT THE DAILY FACT</div>
+            </div>
+            <button class="help-trigger" id="help-btn" aria-label="How to play">?</button>
+        </div>
+
+        <header>
+            <div id="date-display">DATE: --/--/----</div>
+            <div id="case-display">CASE #001</div>
+        </header>
+
+        <div id="subject-line">SUBJECT: [CLASSIFIED]</div>
+
+        <div id="fact-display">
+            <!-- Fact words will be injected here via JS -->
+        </div>
+
+        <div id="stamp">DECLASSIFIED</div>
+
+        <div class="input-area">
+            <input type="text" id="guess-input" placeholder="TYPE TO DECRYPT..." autocomplete="off" spellcheck="false" autofocus>
+            <div class="controls">
+                <div id="missed-words"></div>
+                <button id="hint-btn">REQ. INTEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal-overlay">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="close-help-btn">&times;</button>
+            <div class="modal-header">Mission Briefing</div>
+            <ul class="help-list">
+                <li><strong>Objective:</strong> Decrypt the redacted fact of the day.</li>
+                <li><strong>Intel:</strong> Guess words related to the subject. Correct guesses reveal that word.</li>
+                <li><strong>Context:</strong> Use the revealed words to infer the rest of the sentence.</li>
+                <li><strong>Assistance:</strong> Requesting "INTEL" reveals the first letter of a random redacted word, but counts against your stats.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- End Screen Modal -->
+    <div id="end-screen" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">Mission Success</div>
+            <div class="congrats-msg">
+                Excellent work, Agent. The intelligence has been successfully decrypted. Your performance metrics are attached below.
+            </div>
+            <div class="report-stats">
+                <div class="stat-box">
+                    <span class="stat-value" id="stat-time">0:00</span>
+                    <span class="stat-label">Time</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="stat-guesses">0</span>
+                    <span class="stat-label">Guesses</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="stat-hints">0</span>
+                    <span class="stat-label">Hints</span>
+                </div>
+            </div>
+            <button id="final-share-btn">Share Mission Report</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. THE DATA SOURCE ---
+        // Contains 50 distinct facts. To extend to 365, add more objects with the same structure.
+        const dailyFacts = [
+            { id: 1, fact: "Honey never spoils.", targets: ["Honey", "spoils"], category: "FOOD SCIENCE", aliases: { "rots": "spoils", "decays": "spoils" } },
+            { id: 2, fact: "Octopuses have three hearts.", targets: ["Octopuses", "three", "hearts"], category: "MARINE BIOLOGY", aliases: { "octopi": "octopuses", "3": "three" } },
+            { id: 3, fact: "Bananas grow towards the sun.", targets: ["Bananas", "sun"], category: "BOTANY", aliases: { "sunlight": "sun" } },
+            { id: 4, fact: "Wombat poop is cube shaped.", targets: ["Wombat", "cube", "shaped"], category: "ZOOLOGY", aliases: { "wombats": "wombat", "square": "cube", "cubed": "cube" } },
+            { id: 5, fact: "Flamingos are naturally white.", targets: ["Flamingos", "naturally", "white"], category: "ORNITHOLOGY", aliases: { "flamingo": "flamingos", "pink": "white" } },
+            { id: 6, fact: "Venus spins clockwise.", targets: ["Venus", "spins", "clockwise"], category: "ASTRONOMY", aliases: { "rotates": "spins", "retrograde": "clockwise" } },
+            { id: 7, fact: "Scotland's national animal is the unicorn.", targets: ["Scotland's", "national", "animal", "unicorn"], category: "NATIONAL SYMBOLS", aliases: { "scotland": "scotland's", "unicorns": "unicorn" } },
+            { id: 8, fact: "Sloths can hold their breath longer than dolphins.", targets: ["Sloths", "breath", "longer", "dolphins"], category: "ZOOLOGY", aliases: { "sloth": "sloths", "dolphin": "dolphins" } },
+            { id: 9, fact: "Strawberries are not berries.", targets: ["Strawberries", "not", "berries"], category: "BOTANY", aliases: { "strawberry": "strawberries", "berry": "berries" } },
+            { id: 10, fact: "Cows have best friends.", targets: ["Cows", "best", "friends"], category: "ANIMAL BEHAVIOR", aliases: { "cow": "cows", "friend": "friends" } },
+            { id: 11, fact: "Humans share fifty percent of DNA with bananas.", targets: ["Humans", "fifty", "DNA", "bananas"], category: "GENETICS", aliases: { "50": "fifty", "percent": "percent", "banana": "bananas" } },
+            { id: 12, fact: "The Eiffel Tower grows in summer.", targets: ["Eiffel", "Tower", "grows", "summer"], category: "PHYSICS", aliases: { "expands": "grows", "taller": "grows" } },
+            { id: 13, fact: "A cloud can weigh a million pounds.", targets: ["cloud", "weigh", "million", "pounds"], category: "METEOROLOGY", aliases: { "clouds": "cloud", "lbs": "pounds", "1000000": "million" } },
+            { id: 14, fact: "A day on Venus is longer than a year on Venus.", targets: ["day", "Venus", "longer", "year"], category: "ASTRONOMY", aliases: { "rotates": "day", "orbits": "year" } },
+            { id: 15, fact: "Koalas have fingerprints like humans.", targets: ["Koalas", "fingerprints", "humans"], category: "ZOOLOGY", aliases: { "koala": "koalas", "prints": "fingerprints" } },
+            { id: 16, fact: "Sharks existed before trees.", targets: ["Sharks", "existed", "before", "trees"], category: "PALEONTOLOGY", aliases: { "shark": "sharks", "tree": "trees", "older": "before" } },
+            { id: 17, fact: "A group of crows is called a murder.", targets: ["group", "crows", "called", "murder"], category: "ETYMOLOGY", aliases: { "crow": "crows", "flock": "group" } },
+            { id: 18, fact: "Blue whales eat half a million calories in one mouthful.", targets: ["Blue", "whales", "half", "million", "calories"], category: "MARINE BIOLOGY", aliases: { "whale": "whales", "eat": "eat" } },
+            { id: 19, fact: "Cleopatra lived closer to the iPhone than the Pyramids.", targets: ["Cleopatra", "closer", "iPhone", "Pyramids"], category: "HISTORY", aliases: { "cleo": "cleopatra", "pyramid": "pyramids" } },
+            { id: 20, fact: "Water makes different sounds depending on temperature.", targets: ["Water", "sounds", "depending", "temperature"], category: "PHYSICS", aliases: { "hot": "temperature", "cold": "temperature" } },
+            { id: 21, fact: "Dead skin is the main ingredient in household dust.", targets: ["Dead", "skin", "ingredient", "dust"], category: "BIOLOGY", aliases: { "cells": "skin", "dirt": "dust" } },
+            { id: 22, fact: "High heels were originally invented for men.", targets: ["High", "heels", "invented", "men"], category: "FASHION HISTORY", aliases: { "heel": "heels", "males": "men" } },
+            { id: 23, fact: "The moon has moonquakes.", targets: ["moon", "moonquakes"], category: "GEOLOGY", aliases: { "quakes": "moonquakes", "earthquakes": "moonquakes" } },
+            { id: 24, fact: "Humans glow in the dark but it is too weak to see.", targets: ["Humans", "glow", "dark", "weak"], category: "BIOLOGY", aliases: { "bioluminescence": "glow", "light": "glow" } },
+            { id: 25, fact: "Ketchup was once sold as medicine.", targets: ["Ketchup", "sold", "medicine"], category: "HISTORY", aliases: { "catsup": "ketchup", "cure": "medicine" } },
+            { id: 26, fact: "Rabbits cannot vomit.", targets: ["Rabbits", "cannot", "vomit"], category: "VETERINARY SCIENCE", aliases: { "rabbit": "rabbits", "puke": "vomit", "throw": "vomit" } },
+            { id: 27, fact: "The heart of a shrimp is in its head.", targets: ["heart", "shrimp", "head"], category: "ANATOMY", aliases: { "prawn": "shrimp", "brains": "head" } },
+            { id: 28, fact: "Sea otters hold hands when they sleep.", targets: ["Sea", "otters", "hold", "hands", "sleep"], category: "ANIMAL BEHAVIOR", aliases: { "otter": "otters", "paws": "hands" } },
+            { id: 29, fact: "A single strand of spaghetti is called a spaghetto.", targets: ["strand", "spaghetti", "called", "spaghetto"], category: "CULINARY LINGUISTICS", aliases: { "pasta": "spaghetti" } },
+            { id: 30, fact: "The shortest war in history lasted thirty eight minutes.", targets: ["shortest", "war", "lasted", "thirty", "eight"], category: "HISTORY", aliases: { "38": "thirty", "minutes": "minutes" } },
+            { id: 31, fact: "Goats have rectangular pupils.", targets: ["Goats", "rectangular", "pupils"], category: "ZOOLOGY", aliases: { "goat": "goats", "eyes": "pupils", "square": "rectangular" } },
+            { id: 32, fact: "There are more stars in space than grains of sand on Earth.", targets: ["stars", "space", "grains", "sand", "Earth"], category: "ASTRONOMY", aliases: { "star": "stars", "beach": "sand" } },
+            { id: 33, fact: "Oxford University is older than the Aztec Empire.", targets: ["Oxford", "University", "older", "Aztec", "Empire"], category: "HISTORY", aliases: { "college": "university", "aztecs": "aztec" } },
+            { id: 34, fact: "Tigers have striped skin not just striped fur.", targets: ["Tigers", "striped", "skin", "fur"], category: "ZOOLOGY", aliases: { "tiger": "tigers", "stripes": "striped" } },
+            { id: 35, fact: "A jiffy is an actual unit of time.", targets: ["jiffy", "actual", "unit", "time"], category: "PHYSICS", aliases: { "measurement": "unit" } },
+            { id: 36, fact: "Frowning burns more calories than smiling.", targets: ["Frowning", "burns", "more", "calories", "smiling"], category: "PHYSIOLOGY", aliases: { "frown": "frowning", "smile": "smiling" } },
+            { id: 37, fact: "Avocados are toxic to birds.", targets: ["Avocados", "toxic", "birds"], category: "VETERINARY SCIENCE", aliases: { "avocado": "avocados", "poisonous": "toxic" } },
+            { id: 38, fact: "Bees can fly higher than Mount Everest.", targets: ["Bees", "fly", "higher", "Mount", "Everest"], category: "ENTOMOLOGY", aliases: { "bee": "bees", "altitude": "higher" } },
+            { id: 39, fact: "Ancient Romans used urine to whiten teeth.", targets: ["Romans", "urine", "whiten", "teeth"], category: "HISTORY", aliases: { "pee": "urine", "clean": "whiten" } },
+            { id: 40, fact: "One quarter of all your bones are in your feet.", targets: ["quarter", "bones", "feet"], category: "ANATOMY", aliases: { "1/4": "quarter", "foot": "feet", "toes": "feet" } },
+            { id: 41, fact: "Diamonds can rain on other planets.", targets: ["Diamonds", "rain", "planets"], category: "ASTRONOMY", aliases: { "diamond": "diamonds", "jupiter": "planets", "saturn": "planets" } },
+            { id: 42, fact: "The hashtag symbol is technically called an octothorpe.", targets: ["hashtag", "symbol", "octothorpe"], category: "LINGUISTICS", aliases: { "#": "hashtag", "pound": "hashtag", "sign": "symbol" } },
+            { id: 43, fact: "Bananas are curved because they grow towards the sun.", targets: ["Bananas", "curved", "grow", "sun"], category: "BOTANY", aliases: { "banana": "bananas", "bend": "curved" } },
+            { id: 44, fact: "Most laughter isn't caused by jokes.", targets: ["laughter", "isn't", "caused", "jokes"], category: "PSYCHOLOGY", aliases: { "laughing": "laughter", "humor": "jokes" } },
+            { id: 45, fact: "The inventor of the Pringles can is buried in one.", targets: ["inventor", "Pringles", "buried"], category: "TRIVIA", aliases: { "creator": "inventor", "chips": "pringles" } },
+            { id: 46, fact: "Cotton candy was invented by a dentist.", targets: ["Cotton", "candy", "invented", "dentist"], category: "IRONIC HISTORY", aliases: { "floss": "candy", "sugar": "candy" } },
+            { id: 47, fact: "Mars appears red because of rusty dust.", targets: ["Mars", "red", "rusty", "dust"], category: "ASTRONOMY", aliases: { "planet": "mars", "rust": "rusty", "iron": "rusty" } },
+            { id: 48, fact: "Apples float because they are one quarter air.", targets: ["Apples", "float", "quarter", "air"], category: "PHYSICS", aliases: { "apple": "apples", "25%": "quarter" } },
+            { id: 49, fact: "The fear of long words is called hippopotomonstrosesquippedaliophobia.", targets: ["fear", "long", "words", "hippopotomonstrosesquippedaliophobia"], category: "PSYCHOLOGY", aliases: { "phobia": "fear" } },
+            { id: 50, fact: "Bats are the only mammals that can fly.", targets: ["Bats", "only", "mammals", "fly"], category: "ZOOLOGY", aliases: { "bat": "bats", "flying": "fly" } }
+        ];
+
+        // --- 2. DAILY LOGIC ---
+        function getFactOfTheDay() {
+            // Determine Day of Year (1-366)
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = (now - start) + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);
+            const oneDay = 1000 * 60 * 60 * 24;
+            const dayOfYear = Math.floor(diff / oneDay);
+
+            // Cycle through available facts based on the day of the year
+            // This ensures it never breaks even if we don't have exactly 365 facts
+            const factIndex = (dayOfYear - 1) % dailyFacts.length; 
+            const fact = dailyFacts[factIndex];
+
+            document.getElementById('date-display').textContent = `DATE: ${now.toLocaleDateString('en-US')}`;
+            document.getElementById('case-display').textContent = `CASE #${String(fact.id).padStart(3, '0')}`;
+            document.getElementById('subject-line').textContent = `SUBJECT: ${fact.category}`;
+            
+            return fact;
+        }
+
+        // --- 3. GAME INITIALIZATION ---
+        const currentFactObj = getFactOfTheDay();
+        const displayContainer = document.getElementById('fact-display');
+        const inputField = document.getElementById('guess-input');
+        const missedDisplay = document.getElementById('missed-words');
+        const hintBtn = document.getElementById('hint-btn');
+        const shareBtn = document.getElementById('final-share-btn');
+        
+        // Modal Elements
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const closeHelpBtn = document.getElementById('close-help-btn');
+        
+        let remainingRedactions = 0;
+        const hintedWords = new Set();
+        
+        // Stats Variables
+        let startTime;
+        let endTime;
+        let totalGuesses = 0;
+        let hintsUsedCount = 0;
+
+        function initGame() {
+            startTime = new Date(); // Start timer
+            const words = currentFactObj.fact.split(' ');
+            
+            words.forEach((word) => {
+                const span = document.createElement('span');
+                span.classList.add('word');
+                
+                // Animation removed for instant load
+
+                const cleanWord = word.replace(/[^\w\s-]/g, ''); 
+                const isTarget = currentFactObj.targets.some(target => 
+                    target.toLowerCase() === cleanWord.toLowerCase()
+                );
+
+                if (isTarget) {
+                    span.classList.add('redacted');
+                    span.dataset.secret = cleanWord.toLowerCase();
+                    remainingRedactions++;
+                }
+
+                span.textContent = word;
+                displayContainer.appendChild(span);
+            });
+        }
+
+        // --- 4. GAMEPLAY MECHANICS ---
+
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const guess = inputField.value.trim().toLowerCase();
+                if (guess) checkGuess(guess);
+                inputField.value = ''; 
+            }
+        });
+
+        hintBtn.addEventListener('click', () => {
+            const hiddenWords = Array.from(document.querySelectorAll('.redacted'))
+                .filter(span => !span.hasAttribute('data-hint'));
+            
+            if (hiddenWords.length > 0) {
+                const randomSpan = hiddenWords[Math.floor(Math.random() * hiddenWords.length)];
+                const secretWord = randomSpan.dataset.secret;
+                
+                hintedWords.add(secretWord);
+                hintsUsedCount++; // Increment hint usage stats
+                
+                randomSpan.setAttribute('data-hint', secretWord.charAt(0).toUpperCase());
+            } else {
+                hintBtn.disabled = true;
+            }
+        });
+
+        function checkGuess(guess) {
+            totalGuesses++; // Increment guess stats
+
+            let effectiveGuess = guess;
+            if (currentFactObj.aliases && currentFactObj.aliases[guess]) {
+                effectiveGuess = currentFactObj.aliases[guess];
+            }
+
+            const allRedacted = document.querySelectorAll('.redacted');
+            let found = false;
+
+            allRedacted.forEach(span => {
+                if (span.dataset.secret === effectiveGuess) {
+                    revealWord(span);
+                    found = true;
+                }
+            });
+
+            if (found) {
+                checkWinCondition();
+            } else {
+                handleIncorrectGuess(guess);
+            }
+        }
+
+        function revealWord(span) {
+            span.classList.remove('redacted');
+            span.removeAttribute('data-hint');
+            span.classList.add('revealed');
+            remainingRedactions--;
+        }
+
+        function handleIncorrectGuess(guess) {
+            inputField.classList.remove('shake');
+            void inputField.offsetWidth; 
+            inputField.classList.add('shake');
+
+            missedDisplay.textContent = `NO MATCH FOR "${guess.toUpperCase()}"`;
+            setTimeout(() => {
+                if (missedDisplay.textContent.includes(guess.toUpperCase())) {
+                    missedDisplay.textContent = '';
+                }
+            }, 2000);
+        }
+
+        function checkWinCondition() {
+            if (remainingRedactions === 0) {
+                triggerWinState();
+            }
+        }
+
+        function triggerWinState() {
+            endTime = new Date(); // Stop timer
+
+            // Background change
+            document.body.style.backgroundColor = 'var(--win-bg-color)';
+            
+            // Lock inputs
+            inputField.blur();
+            inputField.disabled = true;
+            inputField.placeholder = "CASE CLOSED";
+            inputField.style.borderBottomColor = "transparent";
+            
+            hintBtn.style.display = 'none';
+            missedDisplay.style.display = 'none';
+
+            // Stamp Animation
+            const stamp = document.getElementById('stamp');
+            stamp.classList.add('stamp-visible');
+
+            // Show End Screen after delay
+            setTimeout(() => {
+                showEndScreen();
+            }, 1800); // 1.8s delay lets the stamp "sink in"
+        }
+
+        function showEndScreen() {
+            const endScreen = document.getElementById('end-screen');
+            const timeDiff = Math.floor((endTime - startTime) / 1000);
+            
+            // Format time MM:SS
+            const minutes = Math.floor(timeDiff / 60);
+            const seconds = timeDiff % 60;
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            // Populate DOM
+            document.getElementById('stat-time').textContent = timeString;
+            document.getElementById('stat-guesses').textContent = totalGuesses;
+            document.getElementById('stat-hints').textContent = hintsUsedCount;
+
+            openModal(endScreen);
+        }
+
+        // --- 5. MODAL LOGIC ---
+        function openModal(modal) {
+            modal.style.display = "flex";
+            setTimeout(() => {
+                modal.classList.add('visible');
+            }, 10);
+        }
+
+        function closeModal(modal) {
+            modal.classList.remove('visible');
+            setTimeout(() => {
+                modal.style.display = "none";
+            }, 500);
+        }
+
+        // Help Modal Events
+        helpBtn.addEventListener('click', () => {
+            openModal(helpModal);
+        });
+
+        closeHelpBtn.addEventListener('click', () => {
+            closeModal(helpModal);
+        });
+
+        // Close modal if clicking outside card
+        window.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                closeModal(helpModal);
+            }
+        });
+
+        // --- 6. SHARE LOGIC ---
+        shareBtn.addEventListener('click', async () => {
+            const caseId = String(currentFactObj.id).padStart(3, '0');
+            const timeVal = document.getElementById('stat-time').textContent;
+            
+            // Emoji Grid
+            let grid = "";
+            currentFactObj.targets.forEach(target => {
+                const lowerTarget = target.toLowerCase();
+                if (hintedWords.has(lowerTarget)) {
+                    grid += "🟨";
+                } else {
+                    grid += "🟩";
+                }
+            });
+
+            // Enhanced Share Text (Updated Name)
+            const shareText = `CONTEXT\nCASE #${caseId}: SOLVED\nTIME: ${timeVal} | GUESSES: ${totalGuesses}\n${grid}`;
+
+            // 1. Try Native Share Sheet (Mobile/iOS)
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        text: shareText
+                    });
+                    return; // Exit if share was successful/initiated
+                } catch (err) {
+                    // User canceled or share failed. 
+                    // We typically stop here, or you could fallback.
+                    if (err.name !== 'AbortError') {
+                        console.error('Share API error:', err);
+                    }
+                    return; 
+                }
+            }
+
+            // 2. Fallback: Copy to Clipboard (Desktop)
+            const textArea = document.createElement("textarea");
+            textArea.value = shareText;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                const originalText = shareBtn.textContent;
+                shareBtn.textContent = "COPIED TO CLIPBOARD";
+                setTimeout(() => {
+                    shareBtn.textContent = originalText;
+                }, 2000);
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+            }
+
+            document.body.removeChild(textArea);
+        });
+
+        // Start
+        initGame();
+
+    </script>
+</body>
+</html>
