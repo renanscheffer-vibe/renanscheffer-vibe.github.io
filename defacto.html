@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Context</title>
+    <title>De Facto</title>
     <!-- Importing Courier Prime for that authentic typewriter look -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -130,6 +130,15 @@
             font-size: 1.1rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            line-height: 1.4;
+        }
+
+        .subject-desc {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 400;
+            opacity: 0.7;
+            margin-top: 4px;
         }
 
         #fact-display {
@@ -533,7 +542,7 @@
         
         <div class="title-bar">
             <div class="title-wrapper">
-                <h1 class="game-title">CONTEXT</h1>
+                <h1 class="game-title">DE FACTO</h1>
                 <div class="game-subtitle">DECRYPT THE DAILY FACT</div>
             </div>
             <button class="help-trigger" id="help-btn" aria-label="How to play">?</button>
@@ -550,13 +559,13 @@
             <!-- Fact words will be injected here via JS -->
         </div>
 
-        <div id="stamp">DECLASSIFIED</div>
+        <div id="stamp">VERIFIED</div>
 
         <div class="input-area">
             <!-- Replaced input with a display div to prevent native keyboard -->
             <div id="guess-display" class="active-cursor"></div>
             <div class="controls">
-                <button id="hint-btn">REQ. INTEL</button>
+                <button id="hint-btn">HINT</button>
                 <div id="missed-words"></div>
             </div>
         </div>
@@ -571,10 +580,10 @@
             <button class="modal-close-btn" id="close-help-btn">&times;</button>
             <div class="modal-header">Mission Briefing</div>
             <ul class="help-list">
-                <li><strong>Objective:</strong> Decrypt the redacted fact of the day.</li>
-                <li><strong>Intel:</strong> Guess words related to the subject. Correct guesses reveal that word.</li>
+                <li><strong>Objective:</strong> Uncover the redacted fact of the day.</li>
+                <li><strong>Decryption:</strong> Guess words related to the subject. Correct guesses reveal that word.</li>
                 <li><strong>Context:</strong> Use the revealed words to infer the rest of the sentence.</li>
-                <li><strong>Assistance:</strong> Requesting "INTEL" reveals the first letter of a random redacted word, but counts against your stats.</li>
+                <li><strong>Assistance:</strong> Requesting a "HINT" reveals the first letter of a random redacted word, but counts against your stats.</li>
             </ul>
         </div>
     </div>
@@ -582,9 +591,9 @@
     <!-- End Screen Modal -->
     <div id="end-screen" class="modal-overlay">
         <div class="modal-card">
-            <div class="modal-header">Mission Success</div>
+            <div class="modal-header">Fact Verified</div>
             <div class="congrats-msg">
-                Excellent work, Agent. The intelligence has been successfully decrypted. Your performance metrics are attached below.
+                Excellent work. You've uncovered today's fact. Your performance metrics are attached below.
             </div>
             <div class="report-stats">
                 <div class="stat-box">
@@ -600,63 +609,63 @@
                     <span class="stat-label">Hints</span>
                 </div>
             </div>
-            <button id="final-share-btn">Share Mission Report</button>
+            <button id="final-share-btn">Share Result</button>
         </div>
     </div>
 
     <script>
         // --- 1. THE DATA SOURCE ---
         const dailyFacts = [
-            { id: 1, fact: "Honey never spoils.", targets: ["Honey", "spoils"], category: "FOOD SCIENCE", aliases: { "rots": "spoils", "decays": "spoils" } },
-            { id: 2, fact: "Octopuses have three hearts.", targets: ["Octopuses", "three", "hearts"], category: "MARINE BIOLOGY", aliases: { "octopi": "octopuses", "3": "three" } },
-            { id: 3, fact: "Bananas grow towards the sun.", targets: ["Bananas", "sun"], category: "BOTANY", aliases: { "sunlight": "sun" } },
-            { id: 4, fact: "Wombat poop is cube shaped.", targets: ["Wombat", "cube", "shaped"], category: "ZOOLOGY", aliases: { "wombats": "wombat", "square": "cube", "cubed": "cube" } },
-            { id: 5, fact: "Flamingos are naturally white.", targets: ["Flamingos", "naturally", "white"], category: "ORNITHOLOGY", aliases: { "flamingo": "flamingos", "pink": "white" } },
-            { id: 6, fact: "Venus spins clockwise.", targets: ["Venus", "spins", "clockwise"], category: "ASTRONOMY", aliases: { "rotates": "spins", "retrograde": "clockwise" } },
-            { id: 7, fact: "Scotland's national animal is the unicorn.", targets: ["Scotland's", "national", "animal", "unicorn"], category: "NATIONAL SYMBOLS", aliases: { "scotland": "scotland's", "unicorns": "unicorn" } },
-            { id: 8, fact: "Sloths can hold their breath longer than dolphins.", targets: ["Sloths", "breath", "longer", "dolphins"], category: "ZOOLOGY", aliases: { "sloth": "sloths", "dolphin": "dolphins" } },
-            { id: 9, fact: "Strawberries are not berries.", targets: ["Strawberries", "not", "berries"], category: "BOTANY", aliases: { "strawberry": "strawberries", "berry": "berries" } },
-            { id: 10, fact: "Cows have best friends.", targets: ["Cows", "best", "friends"], category: "ANIMAL BEHAVIOR", aliases: { "cow": "cows", "friend": "friends" } },
-            { id: 11, fact: "Humans share fifty percent of DNA with bananas.", targets: ["Humans", "fifty", "DNA", "bananas"], category: "GENETICS", aliases: { "50": "fifty", "percent": "percent", "banana": "bananas" } },
-            { id: 12, fact: "The Eiffel Tower grows in summer.", targets: ["Eiffel", "Tower", "grows", "summer"], category: "PHYSICS", aliases: { "expands": "grows", "taller": "grows" } },
-            { id: 13, fact: "A cloud can weigh a million pounds.", targets: ["cloud", "weigh", "million", "pounds"], category: "METEOROLOGY", aliases: { "clouds": "cloud", "lbs": "pounds", "1000000": "million" } },
-            { id: 14, fact: "A day on Venus is longer than a year on Venus.", targets: ["day", "Venus", "longer", "year"], category: "ASTRONOMY", aliases: { "rotates": "day", "orbits": "year" } },
-            { id: 15, fact: "Koalas have fingerprints like humans.", targets: ["Koalas", "fingerprints", "humans"], category: "ZOOLOGY", aliases: { "koala": "koalas", "prints": "fingerprints" } },
-            { id: 16, fact: "Sharks existed before trees.", targets: ["Sharks", "existed", "before", "trees"], category: "PALEONTOLOGY", aliases: { "shark": "sharks", "tree": "trees", "older": "before" } },
-            { id: 17, fact: "A group of crows is called a murder.", targets: ["group", "crows", "called", "murder"], category: "ETYMOLOGY", aliases: { "crow": "crows", "flock": "group" } },
-            { id: 18, fact: "Blue whales eat half a million calories in one mouthful.", targets: ["Blue", "whales", "half", "million", "calories"], category: "MARINE BIOLOGY", aliases: { "whale": "whales", "eat": "eat" } },
-            { id: 19, fact: "Cleopatra lived closer to the iPhone than the Pyramids.", targets: ["Cleopatra", "closer", "iPhone", "Pyramids"], category: "HISTORY", aliases: { "cleo": "cleopatra", "pyramid": "pyramids" } },
-            { id: 20, fact: "Water makes different sounds depending on temperature.", targets: ["Water", "sounds", "depending", "temperature"], category: "PHYSICS", aliases: { "hot": "temperature", "cold": "temperature" } },
-            { id: 21, fact: "Dead skin is the main ingredient in household dust.", targets: ["Dead", "skin", "ingredient", "dust"], category: "BIOLOGY", aliases: { "cells": "skin", "dirt": "dust" } },
-            { id: 22, fact: "High heels were originally invented for men.", targets: ["High", "heels", "invented", "men"], category: "FASHION HISTORY", aliases: { "heel": "heels", "males": "men" } },
-            { id: 23, fact: "The moon has moonquakes.", targets: ["moon", "moonquakes"], category: "GEOLOGY", aliases: { "quakes": "moonquakes", "earthquakes": "moonquakes" } },
-            { id: 24, fact: "Humans glow in the dark but it is too weak to see.", targets: ["Humans", "glow", "dark", "weak"], category: "BIOLOGY", aliases: { "bioluminescence": "glow", "light": "glow" } },
-            { id: 25, fact: "Ketchup was once sold as medicine.", targets: ["Ketchup", "sold", "medicine"], category: "HISTORY", aliases: { "catsup": "ketchup", "cure": "medicine" } },
-            { id: 26, fact: "Rabbits cannot vomit.", targets: ["Rabbits", "cannot", "vomit"], category: "VETERINARY SCIENCE", aliases: { "rabbit": "rabbits", "puke": "vomit", "throw": "vomit" } },
-            { id: 27, fact: "The heart of a shrimp is in its head.", targets: ["heart", "shrimp", "head"], category: "ANATOMY", aliases: { "prawn": "shrimp", "brains": "head" } },
-            { id: 28, fact: "Sea otters hold hands when they sleep.", targets: ["Sea", "otters", "hold", "hands", "sleep"], category: "ANIMAL BEHAVIOR", aliases: { "otter": "otters", "paws": "hands" } },
-            { id: 29, fact: "A single strand of spaghetti is called a spaghetto.", targets: ["strand", "spaghetti", "called", "spaghetto"], category: "CULINARY LINGUISTICS", aliases: { "pasta": "spaghetti" } },
-            { id: 30, fact: "The shortest war in history lasted thirty eight minutes.", targets: ["shortest", "war", "lasted", "thirty", "eight"], category: "HISTORY", aliases: { "38": "thirty", "minutes": "minutes" } },
-            { id: 31, fact: "Goats have rectangular pupils.", targets: ["Goats", "rectangular", "pupils"], category: "ZOOLOGY", aliases: { "goat": "goats", "eyes": "pupils", "square": "rectangular" } },
-            { id: 32, fact: "There are more stars in space than grains of sand on Earth.", targets: ["stars", "space", "grains", "sand", "Earth"], category: "ASTRONOMY", aliases: { "star": "stars", "beach": "sand" } },
-            { id: 33, fact: "Oxford University is older than the Aztec Empire.", targets: ["Oxford", "University", "older", "Aztec", "Empire"], category: "HISTORY", aliases: { "college": "university", "aztecs": "aztec" } },
-            { id: 34, fact: "Tigers have striped skin not just striped fur.", targets: ["Tigers", "striped", "skin", "fur"], category: "ZOOLOGY", aliases: { "tiger": "tigers", "stripes": "striped" } },
-            { id: 35, fact: "A jiffy is an actual unit of time.", targets: ["jiffy", "actual", "unit", "time"], category: "PHYSICS", aliases: { "measurement": "unit" } },
-            { id: 36, fact: "Frowning burns more calories than smiling.", targets: ["Frowning", "burns", "more", "calories", "smiling"], category: "PHYSIOLOGY", aliases: { "frown": "frowning", "smile": "smiling" } },
-            { id: 37, fact: "Avocados are toxic to birds.", targets: ["Avocados", "toxic", "birds"], category: "VETERINARY SCIENCE", aliases: { "avocado": "avocados", "poisonous": "toxic" } },
-            { id: 38, fact: "Bees can fly higher than Mount Everest.", targets: ["Bees", "fly", "higher", "Mount", "Everest"], category: "ENTOMOLOGY", aliases: { "bee": "bees", "altitude": "higher" } },
-            { id: 39, fact: "Ancient Romans used urine to whiten teeth.", targets: ["Romans", "urine", "whiten", "teeth"], category: "HISTORY", aliases: { "pee": "urine", "clean": "whiten" } },
-            { id: 40, fact: "One quarter of all your bones are in your feet.", targets: ["quarter", "bones", "feet"], category: "ANATOMY", aliases: { "1/4": "quarter", "foot": "feet", "toes": "feet" } },
-            { id: 41, fact: "Diamonds can rain on other planets.", targets: ["Diamonds", "rain", "planets"], category: "ASTRONOMY", aliases: { "diamond": "diamonds", "jupiter": "planets", "saturn": "planets" } },
-            { id: 42, fact: "The hashtag symbol is technically called an octothorpe.", targets: ["hashtag", "symbol", "octothorpe"], category: "LINGUISTICS", aliases: { "#": "hashtag", "pound": "hashtag", "sign": "symbol" } },
-            { id: 43, fact: "Bananas are curved because they grow towards the sun.", targets: ["Bananas", "curved", "grow", "sun"], category: "BOTANY", aliases: { "banana": "bananas", "bend": "curved" } },
-            { id: 44, fact: "Most laughter isn't caused by jokes.", targets: ["laughter", "isn't", "caused", "jokes"], category: "PSYCHOLOGY", aliases: { "laughing": "laughter", "humor": "jokes" } },
-            { id: 45, fact: "The inventor of the Pringles can is buried in one.", targets: ["inventor", "Pringles", "buried"], category: "TRIVIA", aliases: { "creator": "inventor", "chips": "pringles" } },
-            { id: 46, fact: "Cotton candy was invented by a dentist.", targets: ["Cotton", "candy", "invented", "dentist"], category: "IRONIC HISTORY", aliases: { "floss": "candy", "sugar": "candy" } },
-            { id: 47, fact: "Mars appears red because of rusty dust.", targets: ["Mars", "red", "rusty", "dust"], category: "ASTRONOMY", aliases: { "planet": "mars", "rust": "rusty", "iron": "rusty" } },
-            { id: 48, fact: "Apples float because they are one quarter air.", targets: ["Apples", "float", "quarter", "air"], category: "PHYSICS", aliases: { "apple": "apples", "25%": "quarter" } },
-            { id: 49, fact: "The fear of long words is called hippopotomonstrosesquippedaliophobia.", targets: ["fear", "long", "words", "hippopotomonstrosesquippedaliophobia"], category: "PSYCHOLOGY", aliases: { "phobia": "fear" } },
-            { id: 50, fact: "Bats are the only mammals that can fly.", targets: ["Bats", "only", "mammals", "fly"], category: "ZOOLOGY", aliases: { "bat": "bats", "flying": "fly" } }
+            { id: 1, fact: "Honey never spoils.", targets: ["Honey", "spoils"], category: "FOOD SCIENCE", description: "THE STUDY OF FOOD", aliases: { "rots": "spoils", "decays": "spoils" } },
+            { id: 2, fact: "Octopuses have three hearts.", targets: ["Octopuses", "three", "hearts"], category: "MARINE BIOLOGY", description: "THE STUDY OF OCEAN LIFE", aliases: { "octopi": "octopuses", "3": "three" } },
+            { id: 3, fact: "Bananas grow towards the sun.", targets: ["Bananas", "sun"], category: "BOTANY", description: "THE STUDY OF PLANTS", aliases: { "sunlight": "sun" } },
+            { id: 4, fact: "Wombat poop is cube shaped.", targets: ["Wombat", "cube", "shaped"], category: "ZOOLOGY", description: "THE STUDY OF ANIMALS", aliases: { "wombats": "wombat", "square": "cube", "cubed": "cube" } },
+            { id: 5, fact: "Flamingos are naturally white.", targets: ["Flamingos", "naturally", "white"], category: "ORNITHOLOGY", description: "THE STUDY OF BIRDS", aliases: { "flamingo": "flamingos", "pink": "white" } },
+            { id: 6, fact: "Venus spins clockwise.", targets: ["Venus", "spins", "clockwise"], category: "ASTRONOMY", description: "THE STUDY OF CELESTIAL OBJECTS", aliases: { "rotates": "spins", "retrograde": "clockwise" } },
+            { id: 7, fact: "Scotland's national animal is the unicorn.", targets: ["Scotland's", "national", "animal", "unicorn"], category: "NATIONAL SYMBOLS", description: "ICONS REPRESENTING COUNTRIES", aliases: { "scotland": "scotland's", "unicorns": "unicorn" } },
+            { id: 8, fact: "Sloths can hold their breath longer than dolphins.", targets: ["Sloths", "breath", "longer", "dolphins"], category: "ZOOLOGY", description: "THE STUDY OF ANIMALS", aliases: { "sloth": "sloths", "dolphin": "dolphins" } },
+            { id: 9, fact: "Strawberries are not berries.", targets: ["Strawberries", "not", "berries"], category: "BOTANY", description: "THE STUDY OF PLANTS", aliases: { "strawberry": "strawberries", "berry": "berries" } },
+            { id: 10, fact: "Cows have best friends.", targets: ["Cows", "best", "friends"], category: "ANIMAL BEHAVIOR", description: "HOW ANIMALS ACT AND INTERACT", aliases: { "cow": "cows", "friend": "friends" } },
+            { id: 11, fact: "Humans share fifty percent of DNA with bananas.", targets: ["Humans", "fifty", "DNA", "bananas"], category: "GENETICS", description: "THE STUDY OF HEREDITY AND DNA", aliases: { "50": "fifty", "percent": "percent", "banana": "bananas" } },
+            { id: 12, fact: "The Eiffel Tower grows in summer.", targets: ["Eiffel", "Tower", "grows", "summer"], category: "PHYSICS", description: "THE STUDY OF MATTER AND ENERGY", aliases: { "expands": "grows", "taller": "grows" } },
+            { id: 13, fact: "A cloud can weigh a million pounds.", targets: ["cloud", "weigh", "million", "pounds"], category: "METEOROLOGY", description: "THE STUDY OF WEATHER", aliases: { "clouds": "cloud", "lbs": "pounds", "1000000": "million" } },
+            { id: 14, fact: "A day on Venus is longer than a year on Venus.", targets: ["day", "Venus", "longer", "year"], category: "ASTRONOMY", description: "THE STUDY OF CELESTIAL OBJECTS", aliases: { "rotates": "day", "orbits": "year" } },
+            { id: 15, fact: "Koalas have fingerprints like humans.", targets: ["Koalas", "fingerprints", "humans"], category: "ZOOLOGY", description: "THE STUDY OF ANIMALS", aliases: { "koala": "koalas", "prints": "fingerprints" } },
+            { id: 16, fact: "Sharks existed before trees.", targets: ["Sharks", "existed", "before", "trees"], category: "PALEONTOLOGY", description: "THE STUDY OF ANCIENT LIFE", aliases: { "shark": "sharks", "tree": "trees", "older": "before" } },
+            { id: 17, fact: "A group of crows is called a murder.", targets: ["group", "crows", "called", "murder"], category: "ETYMOLOGY", description: "THE ORIGIN OF WORDS", aliases: { "crow": "crows", "flock": "group" } },
+            { id: 18, fact: "Blue whales eat half a million calories in one mouthful.", targets: ["Blue", "whales", "half", "million", "calories"], category: "MARINE BIOLOGY", description: "THE STUDY OF OCEAN LIFE", aliases: { "whale": "whales", "eat": "eat" } },
+            { id: 19, fact: "Cleopatra lived closer to the iPhone than the Pyramids.", targets: ["Cleopatra", "closer", "iPhone", "Pyramids"], category: "HISTORY", description: "THE STUDY OF PAST EVENTS", aliases: { "cleo": "cleopatra", "pyramid": "pyramids" } },
+            { id: 20, fact: "Water makes different sounds depending on temperature.", targets: ["Water", "sounds", "depending", "temperature"], category: "PHYSICS", description: "THE STUDY OF MATTER AND ENERGY", aliases: { "hot": "temperature", "cold": "temperature" } },
+            { id: 21, fact: "Dead skin is the main ingredient in household dust.", targets: ["Dead", "skin", "ingredient", "dust"], category: "BIOLOGY", description: "THE SCIENCE OF LIFE", aliases: { "cells": "skin", "dirt": "dust" } },
+            { id: 22, fact: "High heels were originally invented for men.", targets: ["High", "heels", "invented", "men"], category: "FASHION HISTORY", description: "THE EVOLUTION OF CLOTHING", aliases: { "heel": "heels", "males": "men" } },
+            { id: 23, fact: "The moon has moonquakes.", targets: ["moon", "moonquakes"], category: "GEOLOGY", description: "THE STUDY OF PLANETARY STRUCTURE", aliases: { "quakes": "moonquakes", "earthquakes": "moonquakes" } },
+            { id: 24, fact: "Humans glow in the dark but it is too weak to see.", targets: ["Humans", "glow", "dark", "weak"], category: "BIOLOGY", description: "THE SCIENCE OF LIFE", aliases: { "bioluminescence": "glow", "light": "glow" } },
+            { id: 25, fact: "Ketchup was once sold as medicine.", targets: ["Ketchup", "sold", "medicine"], category: "HISTORY", description: "THE STUDY OF PAST EVENTS", aliases: { "catsup": "ketchup", "cure": "medicine" } },
+            { id: 26, fact: "Rabbits cannot vomit.", targets: ["Rabbits", "cannot", "vomit"], category: "VETERINARY SCIENCE", description: "ANIMAL MEDICINE AND HEALTH", aliases: { "rabbit": "rabbits", "puke": "vomit", "throw": "vomit" } },
+            { id: 27, fact: "The heart of a shrimp is in its head.", targets: ["heart", "shrimp", "head"], category: "ANATOMY", description: "THE STUDY OF BODY STRUCTURE", aliases: { "prawn": "shrimp", "brains": "head" } },
+            { id: 28, fact: "Sea otters hold hands when they sleep.", targets: ["Sea", "otters", "hold", "hands", "sleep"], category: "ANIMAL BEHAVIOR", description: "HOW ANIMALS ACT AND INTERACT", aliases: { "otter": "otters", "paws": "hands" } },
+            { id: 29, fact: "A single strand of spaghetti is called a spaghetto.", targets: ["strand", "spaghetti", "called", "spaghetto"], category: "CULINARY LINGUISTICS", description: "LANGUAGE RELATED TO FOOD", aliases: { "pasta": "spaghetti" } },
+            { id: 30, fact: "The shortest war in history lasted thirty eight minutes.", targets: ["shortest", "war", "lasted", "thirty", "eight"], category: "HISTORY", description: "THE STUDY OF PAST EVENTS", aliases: { "38": "thirty", "minutes": "minutes" } },
+            { id: 31, fact: "Goats have rectangular pupils.", targets: ["Goats", "rectangular", "pupils"], category: "ZOOLOGY", description: "THE STUDY OF ANIMALS", aliases: { "goat": "goats", "eyes": "pupils", "square": "rectangular" } },
+            { id: 32, fact: "There are more stars in space than grains of sand on Earth.", targets: ["stars", "space", "grains", "sand", "Earth"], category: "ASTRONOMY", description: "THE STUDY OF CELESTIAL OBJECTS", aliases: { "star": "stars", "beach": "sand" } },
+            { id: 33, fact: "Oxford University is older than the Aztec Empire.", targets: ["Oxford", "University", "older", "Aztec", "Empire"], category: "HISTORY", description: "THE STUDY OF PAST EVENTS", aliases: { "college": "university", "aztecs": "aztec" } },
+            { id: 34, fact: "Tigers have striped skin not just striped fur.", targets: ["Tigers", "striped", "skin", "fur"], category: "ZOOLOGY", description: "THE STUDY OF ANIMALS", aliases: { "tiger": "tigers", "stripes": "striped" } },
+            { id: 35, fact: "A jiffy is an actual unit of time.", targets: ["jiffy", "actual", "unit", "time"], category: "PHYSICS", description: "THE STUDY OF MATTER AND ENERGY", aliases: { "measurement": "unit" } },
+            { id: 36, fact: "Frowning burns more calories than smiling.", targets: ["Frowning", "burns", "more", "calories", "smiling"], category: "PHYSIOLOGY", description: "HOW LIVING BODIES FUNCTION", aliases: { "frown": "frowning", "smile": "smiling" } },
+            { id: 37, fact: "Avocados are toxic to birds.", targets: ["Avocados", "toxic", "birds"], category: "VETERINARY SCIENCE", description: "ANIMAL MEDICINE AND HEALTH", aliases: { "avocado": "avocados", "poisonous": "toxic" } },
+            { id: 38, fact: "Bees can fly higher than Mount Everest.", targets: ["Bees", "fly", "higher", "Mount", "Everest"], category: "ENTOMOLOGY", description: "THE STUDY OF INSECTS", aliases: { "bee": "bees", "altitude": "higher" } },
+            { id: 39, fact: "Ancient Romans used urine to whiten teeth.", targets: ["Romans", "urine", "whiten", "teeth"], category: "HISTORY", description: "THE STUDY OF PAST EVENTS", aliases: { "pee": "urine", "clean": "whiten" } },
+            { id: 40, fact: "One quarter of all your bones are in your feet.", targets: ["quarter", "bones", "feet"], category: "ANATOMY", description: "THE STUDY OF BODY STRUCTURE", aliases: { "1/4": "quarter", "foot": "feet", "toes": "feet" } },
+            { id: 41, fact: "Diamonds can rain on other planets.", targets: ["Diamonds", "rain", "planets"], category: "ASTRONOMY", description: "THE STUDY OF CELESTIAL OBJECTS", aliases: { "diamond": "diamonds", "jupiter": "planets", "saturn": "planets" } },
+            { id: 42, fact: "The hashtag symbol is technically called an octothorpe.", targets: ["hashtag", "symbol", "octothorpe"], category: "LINGUISTICS", description: "THE STUDY OF LANGUAGE", aliases: { "#": "hashtag", "pound": "hashtag", "sign": "symbol" } },
+            { id: 43, fact: "Bananas are curved because they grow towards the sun.", targets: ["Bananas", "curved", "grow", "sun"], category: "BOTANY", description: "THE STUDY OF PLANTS", aliases: { "banana": "bananas", "bend": "curved" } },
+            { id: 44, fact: "Most laughter isn't caused by jokes.", targets: ["laughter", "isn't", "caused", "jokes"], category: "PSYCHOLOGY", description: "THE STUDY OF MIND AND BEHAVIOR", aliases: { "laughing": "laughter", "humor": "jokes" } },
+            { id: 45, fact: "The inventor of the Pringles can is buried in one.", targets: ["inventor", "Pringles", "buried"], category: "TRIVIA", description: "GENERAL KNOWLEDGE", aliases: { "creator": "inventor", "chips": "pringles" } },
+            { id: 46, fact: "Cotton candy was invented by a dentist.", targets: ["Cotton", "candy", "invented", "dentist"], category: "IRONIC HISTORY", description: "UNEXPECTED HISTORICAL TWISTS", aliases: { "floss": "candy", "sugar": "candy" } },
+            { id: 47, fact: "Mars appears red because of rusty dust.", targets: ["Mars", "red", "rusty", "dust"], category: "ASTRONOMY", description: "THE STUDY OF CELESTIAL OBJECTS", aliases: { "planet": "mars", "rust": "rusty", "iron": "rusty" } },
+            { id: 48, fact: "Apples float because they are one quarter air.", targets: ["Apples", "float", "quarter", "air"], category: "PHYSICS", description: "THE STUDY OF MATTER AND ENERGY", aliases: { "apple": "apples", "25%": "quarter" } },
+            { id: 49, fact: "The fear of long words is called hippopotomonstrosesquippedaliophobia.", targets: ["fear", "long", "words", "hippopotomonstrosesquippedaliophobia"], category: "PSYCHOLOGY", description: "THE STUDY OF MIND AND BEHAVIOR", aliases: { "phobia": "fear" } },
+            { id: 50, fact: "Bats are the only mammals that can fly.", targets: ["Bats", "only", "mammals", "fly"], category: "ZOOLOGY", description: "THE STUDY OF ANIMALS", aliases: { "bat": "bats", "flying": "fly" } }
         ];
 
         // --- 2. DAILY LOGIC ---
@@ -674,7 +683,10 @@
 
             document.getElementById('date-display').textContent = `DATE: ${now.toLocaleDateString('en-US')}`;
             document.getElementById('case-display').textContent = `CASE #${String(fact.id).padStart(3, '0')}`;
-            document.getElementById('subject-line').textContent = `SUBJECT: ${fact.category}`;
+            
+            // Updated Subject Line with Description
+            const subjectLine = document.getElementById('subject-line');
+            subjectLine.innerHTML = `SUBJECT: ${fact.category} <span class="subject-desc">(${fact.description})</span>`;
             
             return fact;
         }
@@ -976,7 +988,7 @@
             });
 
             // Enhanced Share Text (Updated Name)
-            const shareText = `CONTEXT\nCASE #${caseId}: SOLVED\nTIME: ${timeVal} | GUESSES: ${totalGuesses}\n${grid}`;
+            const shareText = `DE FACTO\nCASE #${caseId}: VERIFIED\nTIME: ${timeVal} | GUESSES: ${totalGuesses}\n${grid}`;
 
             // 1. Try Native Share Sheet (Mobile/iOS)
             if (navigator.share) {
