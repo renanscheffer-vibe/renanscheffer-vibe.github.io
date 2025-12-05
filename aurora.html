@@ -491,11 +491,19 @@
                 this.analyser = null;
                 this.dataArray = null;
                 this.isListening = false;
+                this.stream = null;
                 this.volume = 0;
             }
 
             async init(audioContext) {
+                // If we already have a live stream, reuse it
+                if (this.stream && this.stream.active) {
+                    this.isListening = true;
+                    return;
+                }
+
                 if (!audioContext) return;
+                
                 try {
                     // Force mobile specific constraints to avoid errors
                     const constraints = { 
@@ -505,8 +513,8 @@
                             autoGainControl: true
                         } 
                     };
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    const source = audioContext.createMediaStreamSource(stream);
+                    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const source = audioContext.createMediaStreamSource(this.stream);
                     this.analyser = audioContext.createAnalyser();
                     this.analyser.fftSize = 64; // Small size for performance
                     this.analyser.smoothingTimeConstant = 0.5; // Smooth out jitter
@@ -515,7 +523,8 @@
                     this.isListening = true;
                 } catch (e) {
                     console.warn("Microphone access denied or error:", e);
-                    // Silent fail is better than alert on loop
+                    this.isListening = false;
+                    throw e; // Rethrow so we can catch it in the UI handler
                 }
             }
 
@@ -538,6 +547,25 @@
 
         const audio = new BreathAudio();
         const mic = new MicInput();
+        
+        // Mic Toggle Event Listener (iOS UX Fix)
+        // Requests permission immediately upon checking the box
+        document.getElementById('mic-check').addEventListener('change', async function(e) {
+            if (this.checked) {
+                // Init audio context (silent) to prepare for mic stream
+                audio.init(); 
+                try {
+                    await mic.init(audio.getContext());
+                } catch (err) {
+                    this.checked = false;
+                    alert("Microphone access is required for this feature. Please check your browser settings.");
+                }
+            } else {
+                mic.isListening = false;
+                // We keep the stream open in case they toggle it back, 
+                // but set isListening to false to stop visuals.
+            }
+        });
 
         /**
          * ------------------------------------------------------------------
@@ -901,6 +929,7 @@
             // Request Mic (Async) - if enabled
             const micEnabled = document.getElementById('mic-check').checked;
             if (micEnabled) {
+                // If permission was already granted via the checkbox, this just re-activates the listener flag
                 promises.push(mic.init(audio.getContext()));
             }
 
