@@ -36,18 +36,26 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* Prevent scrolling */
+            
+            /* IOS FIX: Prevents "Rubber banding" / Pull-to-refresh bounce */
+            overscroll-behavior: none;
+            touch-action: none;
+        }
+
         body {
             background-color: var(--bg-color);
             color: var(--text-primary);
             font-family: 'Inter', sans-serif;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             transition: background-color 2s ease;
+            position: fixed; /* Lock body in place */
         }
 
         /* Canvas Background */
@@ -505,8 +513,7 @@
                 if (!audioContext) return;
                 
                 try {
-                    // Force mobile specific constraints for RAW audio
-                    // Disabling Echo Cancellation prevents iOS from switching to "Phone Call" volume mode
+                    // Force mobile specific constraints to avoid errors
                     const constraints = { 
                         audio: { 
                             echoCancellation: false,
@@ -517,15 +524,15 @@
                     this.stream = await navigator.mediaDevices.getUserMedia(constraints);
                     const source = audioContext.createMediaStreamSource(this.stream);
                     this.analyser = audioContext.createAnalyser();
-                    this.analyser.fftSize = 64; 
-                    this.analyser.smoothingTimeConstant = 0.5; 
+                    this.analyser.fftSize = 64; // Small size for performance
+                    this.analyser.smoothingTimeConstant = 0.5; // Smooth out jitter
                     source.connect(this.analyser);
                     this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
                     this.isListening = true;
                 } catch (e) {
                     console.warn("Microphone access denied or error:", e);
                     this.isListening = false;
-                    throw e; 
+                    throw e; // Rethrow so we can catch it in the UI handler
                 }
             }
 
@@ -537,13 +544,12 @@
                 for (let i = 0; i < this.dataArray.length; i++) {
                     sum += this.dataArray[i];
                 }
-                // Normalize 0 to 1
+                // Normalize 0 to 1, apply a threshold to ignore background noise
                 let avg = sum / this.dataArray.length;
                 let norm = avg / 255;
                 
-                // HIGH SENSITIVITY: Boosted for mobile mics
-                // Lower threshold (0.02) and higher multiplier (2.5x)
-                return norm > 0.02 ? Math.pow((norm - 0.02) * 2.5, 2) : 0; 
+                // Smoother noise gate & curve
+                return norm > 0.05 ? Math.pow((norm - 0.05) * 1.5, 2) : 0; 
             }
         }
 
@@ -763,9 +769,15 @@
         };
 
         const handleResize = () => {
+            // SMART RESIZE: We simply update dimensions, we DO NOT re-initVisuals()
+            // This prevents the "Jitter" effect on iOS bounce/overscroll
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
-            initVisuals();
+            
+            // If the entity list is empty (first load), then we init.
+            if (entities.length === 0) {
+                initVisuals();
+            }
         };
         window.addEventListener('resize', handleResize);
         handleResize();
