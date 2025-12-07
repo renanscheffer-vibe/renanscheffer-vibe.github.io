@@ -1,981 +1,841 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Daily Breath | 5-Minute Focus</title>
-    <meta name="description" content="A daily generative breathwork companion.">
-    
-    <!-- Google Fonts: Inter for UI, Space Grotesk for Headings -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+   <title>Daily Breath | 5-Minute Focus</title>
+   <meta name="description" content="A daily generative breathwork companion.">
+   
+   <!-- Google Fonts: Inter for UI, Space Grotesk for Headings -->
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
 
-    <style>
-        :root {
-            /* Base Theme - 2025 "Deep Nature" */
-            --bg-color: #050507;
-            --text-primary: #e2e2e5;
-            --text-secondary: #8c8c9a;
-            --accent-glow: rgba(255, 255, 255, 0.05);
-            --glass-panel: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            
-            /* Dynamic Palette (Will be overwritten by JS daily) */
-            --primary-color: #70e3c5; 
-            --secondary-color: #4a90e2;
+   <style>
+       :root {
+           /* Base Theme - 2025 "Deep Nature" */
+           --bg-color: #050507;
+           --text-primary: #e2e2e5;
+           --text-secondary: #8c8c9a;
+           --accent-glow: rgba(255, 255, 255, 0.05);
+           --glass-panel: rgba(255, 255, 255, 0.03);
+           --glass-border: rgba(255, 255, 255, 0.08);
+           
+           /* Dynamic Palette (Will be overwritten by JS daily) */
+           --primary-color: #70e3c5;
+           --secondary-color: #4a90e2;
 
-            /* Spacing */
-            --spacing-unit: 1rem;
-        }
+           /* Spacing */
+           --spacing-unit: 1rem;
+       }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
+       * {
+           box-sizing: border-box;
+           margin: 0;
+           padding: 0;
+           -webkit-tap-highlight-color: transparent;
+       }
 
-        html, body {
-            height: 100%;
-            width: 100%;
-            overflow: hidden; /* Prevent scrolling */
-            
-            /* IOS FIX: Prevents "Rubber banding" / Pull-to-refresh bounce */
-            overscroll-behavior: none;
-            touch-action: none;
-        }
+       html, body {
+           height: 100%;
+           width: 100%;
+           overflow: hidden; /* Prevent scrolling */
+           
+           /* IOS FIX: Prevents "Rubber banding" / Pull-to-refresh bounce */
+           overscroll-behavior: none;
+           touch-action: none;
+       }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: background-color 2s ease;
-            position: fixed; /* Lock body in place */
-        }
+       body {
+           background-color: var(--bg-color);
+           color: var(--text-primary);
+           font-family: 'Inter', sans-serif;
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+           transition: background-color 2s ease;
+           position: fixed; /* Lock body in place */
+       }
 
-        /* Canvas Background */
-        #art-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
+       /* Canvas Background */
+       #art-canvas {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           z-index: 1;
+       }
 
-        /* UI Layer */
-        .ui-layer {
-            position: relative;
-            z-index: 10;
-            width: 100%;
-            max-width: 500px;
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            pointer-events: none; /* Let clicks pass through to canvas if needed */
-        }
+       /* UI Layer */
+       .ui-layer {
+           position: relative;
+           z-index: 10;
+           width: 100%;
+           max-width: 500px;
+           padding: 2rem;
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           justify-content: center;
+           text-align: center;
+           pointer-events: none; /* Let clicks pass through to canvas if needed */
+       }
 
-        /* Glassmorphism Panel for Controls */
-        .control-panel {
-            pointer-events: auto;
-            background: var(--glass-panel);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 2.5rem;
-            width: 100%;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeIn 1s ease-out forwards 0.5s;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            transition: opacity 0.5s ease, transform 0.5s ease;
-        }
+       /* Glassmorphism Panel for Controls */
+       .control-panel {
+           pointer-events: auto;
+           background: var(--glass-panel);
+           backdrop-filter: blur(20px);
+           -webkit-backdrop-filter: blur(20px);
+           border: 1px solid var(--glass-border);
+           border-radius: 24px;
+           padding: 2.5rem;
+           width: 100%;
+           opacity: 0;
+           transform: translateY(20px);
+           animation: fadeIn 1s ease-out forwards 0.5s;
+           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+           transition: opacity 0.5s ease, transform 0.5s ease;
+       }
 
-        .control-panel.hidden {
-            opacity: 0 !important; /* Force override for iOS */
-            pointer-events: none;
-            transform: scale(0.95);
-            animation: none !important; /* Force kill animation */
-            visibility: hidden; /* Ensure it's removed from accessibility tree */
-            transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s 0.5s; /* Delay visibility change */
-        }
+       .control-panel.hidden {
+           opacity: 0 !important; /* Force override for iOS */
+           pointer-events: none;
+           transform: scale(0.95);
+           animation: none !important; /* Force kill animation */
+           visibility: hidden; /* Ensure it's removed from accessibility tree */
+           transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s 0.5s; /* Delay visibility change */
+       }
 
-        h1 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 300;
-            font-size: 1.1rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
+       h1 {
+           font-family: 'Space Grotesk', sans-serif;
+           font-weight: 300;
+           font-size: 1.1rem;
+           letter-spacing: 0.2em;
+           text-transform: uppercase;
+           color: var(--text-secondary);
+           margin-bottom: 0.5rem;
+       }
 
-        h2 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 400;
-            font-size: 2.5rem;
-            margin-bottom: 2rem;
-            background: linear-gradient(135deg, #fff, var(--text-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+       h2 {
+           font-family: 'Space Grotesk', sans-serif;
+           font-weight: 400;
+           font-size: 2.5rem;
+           margin-bottom: 2rem;
+           background: linear-gradient(135deg, #fff, var(--text-secondary));
+           -webkit-background-clip: text;
+           -webkit-text-fill-color: transparent;
+       }
 
-        .stats {
-            display: flex;
-            gap: 2rem;
-            margin-bottom: 2.5rem;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
+       .stats {
+           display: flex;
+           gap: 2rem;
+           margin-bottom: 2rem;
+           font-size: 0.9rem;
+           color: var(--text-secondary);
+           justify-content: center;
+       }
 
-        .stat-item span {
-            display: block;
-            font-size: 1.2rem;
-            color: var(--primary-color);
-            font-weight: 600;
-            margin-bottom: 0.2rem;
-        }
-        
-        /* Mic Toggle */
-        .mic-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            margin-bottom: 2rem;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-        
-        .mic-checkbox {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--text-secondary);
-            border-radius: 4px;
-            background: transparent;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        .mic-checkbox:checked {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
-        }
+       .stat-item span {
+           display: block;
+           font-size: 1.2rem;
+           color: var(--primary-color);
+           font-weight: 600;
+           margin-bottom: 0.2rem;
+       }
+       
+       /* Instructions Block */
+       .instructions {
+           background: rgba(255, 255, 255, 0.03);
+           border: 1px solid rgba(255, 255, 255, 0.05);
+           border-radius: 16px;
+           padding: 1.5rem;
+           margin-bottom: 2rem;
+           text-align: left;
+           width: 100%;
+       }
 
-        .mic-checkbox:checked::after {
-            content: '✓';
-            position: absolute;
-            color: var(--bg-color);
-            font-size: 14px;
-            font-weight: bold;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
+       .instruction-item {
+           display: flex;
+           align-items: center;
+           gap: 1rem;
+           margin-bottom: 0.8rem;
+           color: var(--text-secondary);
+           font-size: 0.9rem;
+           line-height: 1.4;
+       }
 
-        /* Action Button */
-        .btn-primary {
-            background: var(--text-primary);
-            color: var(--bg-color);
-            border: none;
-            padding: 1rem 3rem;
-            border-radius: 100px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
+       .instruction-item:last-child {
+           margin-bottom: 0;
+       }
 
-        .btn-primary:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px var(--primary-color);
-        }
+       .instruction-icon {
+           font-size: 1.2rem;
+           opacity: 0.8;
+       }
 
-        .btn-primary:active {
-            transform: scale(0.95);
-        }
+       /* Shuffle Theme Button */
+       .theme-shuffle-btn {
+           background: transparent;
+           border: none;
+           color: var(--text-secondary);
+           font-family: 'Space Grotesk', sans-serif;
+           font-size: 0.9rem;
+           cursor: pointer;
+           margin-bottom: 2rem;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           gap: 0.5rem;
+           transition: color 0.3s ease;
+           text-transform: uppercase;
+           letter-spacing: 0.1em;
+       }
 
-        /* Active Session UI */
-        .session-ui {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.8s ease;
-            width: 100%;
-        }
+       .theme-shuffle-btn:hover {
+           color: var(--primary-color);
+       }
 
-        .session-ui.active {
-            opacity: 1;
-            pointer-events: auto;
-            z-index: 20; /* Ensure it floats above the hidden UI layer */
-        }
+       .theme-shuffle-btn .icon {
+           font-size: 1.1rem;
+       }
 
-        .breath-instruction {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 300;
-            margin-bottom: 1rem;
-            letter-spacing: 0.1em;
-            text-shadow: 0 0 30px rgba(0,0,0,0.5);
-        }
+       /* Action Buttons */
+       .btn-group {
+           display: flex;
+           flex-direction: column;
+           gap: 1rem;
+           width: 100%;
+           align-items: center;
+       }
 
-        .timer {
-            font-family: 'Inter', sans-serif;
-            font-variant-numeric: tabular-nums;
-            font-size: 1rem;
-            opacity: 0.6;
-            margin-top: 1rem;
-        }
+       .btn-primary {
+           background: var(--text-primary);
+           color: var(--bg-color);
+           border: none;
+           padding: 1rem 3rem;
+           border-radius: 100px;
+           font-size: 1rem;
+           font-weight: 600;
+           cursor: pointer;
+           transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+           text-transform: uppercase;
+           letter-spacing: 0.05em;
+           width: 100%;
+           max-width: 300px;
+       }
 
-        /* Footer / Date */
-        .date-display {
-            position: absolute;
-            bottom: 2rem;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            opacity: 0.5;
-            letter-spacing: 0.1em;
-            z-index: 10;
-        }
+       .btn-primary:hover {
+           transform: scale(1.05);
+           box-shadow: 0 0 20px var(--primary-color);
+       }
 
-        @keyframes fadeIn {
-            to { opacity: 1; transform: translateY(0); }
-        }
+       .btn-primary:active {
+           transform: scale(0.95);
+       }
 
-        /* Mobile Adjustments */
-        @media (max-width: 600px) {
-            h2 { font-size: 2rem; }
-            .control-panel { padding: 1.5rem; }
-        }
-    </style>
+       /* Active Session UI */
+       .session-ui {
+           position: absolute;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+           text-align: center;
+           opacity: 0;
+           pointer-events: none;
+           transition: opacity 0.8s ease;
+           width: 100%;
+       }
+
+       .session-ui.active {
+           opacity: 1;
+           pointer-events: auto;
+           z-index: 20; /* Ensure it floats above the hidden UI layer */
+       }
+
+       .breath-instruction {
+           font-family: 'Space Grotesk', sans-serif;
+           font-size: 2.5rem;
+           font-weight: 300;
+           margin-bottom: 1rem;
+           letter-spacing: 0.1em;
+           text-shadow: 0 0 30px rgba(0,0,0,0.5);
+       }
+
+       .timer {
+           font-family: 'Inter', sans-serif;
+           font-variant-numeric: tabular-nums;
+           font-size: 1rem;
+           opacity: 0.6;
+           margin-top: 1rem;
+       }
+
+       /* Footer / Date */
+       .date-display {
+           position: absolute;
+           bottom: 2rem;
+           font-size: 0.8rem;
+           color: var(--text-secondary);
+           opacity: 0.5;
+           letter-spacing: 0.1em;
+           z-index: 10;
+       }
+
+       @keyframes fadeIn {
+           to { opacity: 1; transform: translateY(0); }
+       }
+
+       /* Mobile Adjustments */
+       @media (max-width: 600px) {
+           h2 { font-size: 2rem; }
+           .control-panel { padding: 1.5rem; }
+       }
+   </style>
 </head>
 <body>
 
-    <canvas id="art-canvas"></canvas>
-
-    <!-- Start Screen -->
-    <div class="ui-layer">
-        <div class="control-panel" id="start-panel">
-            <h1 id="daily-theme-name">Daily Visualization</h1>
-            <h2>Breathe to Begin</h2>
-            
-            <div class="stats">
-                <div class="stat-item">
-                    <span id="breath-count">4-4-4-4</span>
-                    Technique
-                </div>
-                <div class="stat-item">
-                    <span>5:00</span>
-                    Duration
-                </div>
-            </div>
-
-            <!-- Mic Toggle -->
-            <label class="mic-toggle">
-                <input type="checkbox" id="mic-check" class="mic-checkbox">
-                Enable Mic Interaction (Blow to scatter)
-            </label>
-
-            <button class="btn-primary" id="start-btn">Start Session</button>
-        </div>
-    </div>
-
-    <!-- Active Session Overlay -->
-    <div class="session-ui" id="session-ui">
-        <div class="breath-instruction" id="instruction-text">Inhale</div>
-        <div class="timer" id="timer-text">05:00</div>
-    </div>
-
-    <div class="date-display" id="date-text"></div>
-
-    <script>
-        /**
-         * ------------------------------------------------------------------
-         * CORE UTILITIES: SEEDED RNG & DATE
-         * ------------------------------------------------------------------
-         */
-        
-        // Get today's date string YYYYMMDD for seeding
-        const getDailySeed = () => {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            return parseInt(`${year}${month}${day}`);
-        };
-
-        const todaySeed = getDailySeed();
-
-        // Simple mulberry32 generator for seeded random numbers
-        // This ensures the art is the SAME for everyone on the same day
-        function mulberry32(a) {
-            return function() {
-                var t = a += 0x6D2B79F5;
-                t = Math.imul(t ^ t >>> 15, t | 1);
-                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-                return ((t ^ t >>> 14) >>> 0) / 4294967296;
-            }
-        }
-
-        const rand = mulberry32(todaySeed);
-
-        // Helper to get random range based on daily seed
-        const randomRange = (min, max) => min + rand() * (max - min);
-        const randomInt = (min, max) => Math.floor(randomRange(min, max));
-        const randomChoice = (arr) => arr[Math.floor(rand() * arr.length)];
-
-        /**
-         * ------------------------------------------------------------------
-         * CONFIGURATION & STATE
-         * ------------------------------------------------------------------
-         */
-
-        const canvas = document.getElementById('art-canvas');
-        const ctx = canvas.getContext('2d');
-        let width, height;
-        let animationId;
-        
-        // App State
-        const STATE = {
-            isPlaying: false,
-            phase: 'idle', // idle, inhale, hold_in, exhale, hold_out
-            phaseProgress: 0, // 0.0 to 1.0
-            phaseStartTime: 0,
-            startTime: 0,
-            duration: 5 * 60 * 1000, // 5 minutes
-            breathCycle: {
-                inhale: 4000,
-                holdIn: 4000,
-                exhale: 4000,
-                holdOut: 4000
-            }
-        };
-
-        // Daily Theme Generator
-        const THEMES = [
-            { name: "Nebula Pulse", colors: ["#FF00CC", "#333399", "#00CCFF"], type: "particles" },
-            { name: "Forest Deep", colors: ["#558c42", "#1e3b25", "#a6d685"], type: "geometric" },
-            { name: "Oceanic Flow", colors: ["#006994", "#001e36", "#48dbfb"], type: "waves" },
-            { name: "Solar Flare", colors: ["#ff9f43", "#ee5253", "#feca57"], type: "particles" },
-            { name: "Digital Zen", colors: ["#a29bfe", "#6c5ce7", "#dfe6e9"], type: "geometric" },
-            { name: "Aurora", colors: ["#00ff9d", "#00b8ff", "#7d5fff"], type: "waves" }
-        ];
-
-        const dailyTheme = THEMES[todaySeed % THEMES.length]; 
-        if(rand() > 0.5) dailyTheme.colors.reverse();
-        
-        // Apply CSS variables
-        document.documentElement.style.setProperty('--primary-color', dailyTheme.colors[0]);
-        document.documentElement.style.setProperty('--secondary-color', dailyTheme.colors[2]);
-        document.getElementById('daily-theme-name').textContent = dailyTheme.name;
-        
-        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('date-text').textContent = new Date().toLocaleDateString('en-US', dateOptions);
-
-        /**
-         * ------------------------------------------------------------------
-         * AUDIO ENGINE & MIC HANDLER
-         * ------------------------------------------------------------------
-         */
-
-        class BreathAudio {
-            constructor() {
-                this.ctx = null;
-                this.masterGain = null;
-                this.filter = null;
-                this.osc1 = null;
-                this.osc2 = null;
-                this.isInitialized = false;
-            }
-
-            init() {
-                if (this.isInitialized) return;
-                
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                this.ctx = new AudioContext();
-                
-                // Master Volume
-                this.masterGain = this.ctx.createGain();
-                this.masterGain.gain.setValueAtTime(0, this.ctx.currentTime); // Start silent
-                this.masterGain.connect(this.ctx.destination);
-
-                // Lowpass Filter (Controls the "brightness" based on breath)
-                this.filter = this.ctx.createBiquadFilter();
-                this.filter.type = 'lowpass';
-                this.filter.frequency.setValueAtTime(200, this.ctx.currentTime); 
-                this.filter.Q.value = 1;
-                this.filter.connect(this.masterGain);
-
-                // Oscillator 1 (Base Drone)
-                this.osc1 = this.ctx.createOscillator();
-                this.osc1.type = 'sine';
-                this.osc1.frequency.setValueAtTime(110, this.ctx.currentTime); // A2 (110Hz)
-                this.osc1.connect(this.filter);
-
-                // Oscillator 2 (Binaural Beat / Detune)
-                this.osc2 = this.ctx.createOscillator();
-                this.osc2.type = 'triangle'; 
-                this.osc2.frequency.setValueAtTime(114, this.ctx.currentTime); 
-                
-                const osc2Gain = this.ctx.createGain();
-                osc2Gain.gain.value = 0.6;
-                this.osc2.connect(osc2Gain);
-                osc2Gain.connect(this.filter);
-
-                this.osc1.start();
-                this.osc2.start();
-
-                this.isInitialized = true;
-            }
-
-            // IOS UNLOCKER: Plays a silent buffer instantly to wake up the audio thread
-            unlock() {
-                if (!this.ctx) return;
-                const buffer = this.ctx.createBuffer(1, 1, 22050);
-                const source = this.ctx.createBufferSource();
-                source.buffer = buffer;
-                source.connect(this.ctx.destination);
-                source.start(0);
-            }
-
-            async resumeContext() {
-                if (this.ctx && this.ctx.state === 'suspended') {
-                    await this.ctx.resume();
-                }
-            }
-
-            fadeIn() {
-                if (!this.ctx) return;
-                const now = this.ctx.currentTime;
-                this.masterGain.gain.cancelScheduledValues(now);
-                this.masterGain.gain.setValueAtTime(0, now);
-                // Exponential fade in
-                this.masterGain.gain.setTargetAtTime(0.3, now, 1.5);
-            }
-
-            stop() {
-                if (!this.ctx) return;
-                const now = this.ctx.currentTime;
-                this.masterGain.gain.cancelScheduledValues(now);
-                
-                // Smoothly fade out using current value as starting point
-                this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
-                this.masterGain.gain.linearRampToValueAtTime(0, now + 2);
-            }
-
-            update(breathValue) {
-                if (!this.ctx || !this.isInitialized) return;
-                const now = this.ctx.currentTime;
-                const targetFreq = 150 + (breathValue * 450);
-                this.filter.frequency.setTargetAtTime(targetFreq, now, 0.1);
-                const targetVol = 0.2 + (breathValue * 0.2);
-                this.masterGain.gain.setTargetAtTime(targetVol, now, 0.1);
-            }
-            
-            getContext() {
-                return this.ctx;
-            }
-        }
-
-        class MicInput {
-            constructor() {
-                this.analyser = null;
-                this.dataArray = null;
-                this.isListening = false;
-                this.stream = null;
-                this.volume = 0;
-            }
-
-            async init(audioContext) {
-                // If we already have a live stream, reuse it
-                if (this.stream && this.stream.active) {
-                    this.isListening = true;
-                    return;
-                }
-
-                if (!audioContext) return;
-                
-                try {
-                    // Force mobile specific constraints to avoid errors
-                    const constraints = { 
-                        audio: { 
-                            echoCancellation: false,
-                            noiseSuppression: false,
-                            autoGainControl: false 
-                        } 
-                    };
-                    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    const source = audioContext.createMediaStreamSource(this.stream);
-                    this.analyser = audioContext.createAnalyser();
-                    this.analyser.fftSize = 64; // Small size for performance
-                    this.analyser.smoothingTimeConstant = 0.5; // Smooth out jitter
-                    source.connect(this.analyser);
-                    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-                    this.isListening = true;
-                } catch (e) {
-                    console.warn("Microphone access denied or error:", e);
-                    this.isListening = false;
-                    throw e; // Rethrow so we can catch it in the UI handler
-                }
-            }
-
-            getVolume() {
-                if (!this.isListening) return 0;
-                this.analyser.getByteFrequencyData(this.dataArray);
-                let sum = 0;
-                // Just grab average volume
-                for (let i = 0; i < this.dataArray.length; i++) {
-                    sum += this.dataArray[i];
-                }
-                // Normalize 0 to 1, apply a threshold to ignore background noise
-                let avg = sum / this.dataArray.length;
-                let norm = avg / 255;
-                
-                // Smoother noise gate & curve
-                return norm > 0.05 ? Math.pow((norm - 0.05) * 1.5, 2) : 0; 
-            }
-        }
-
-        const audio = new BreathAudio();
-        const mic = new MicInput();
-        
-        // Mic Toggle Event Listener (iOS UX Fix)
-        // Requests permission immediately upon checking the box
-        document.getElementById('mic-check').addEventListener('change', async function(e) {
-            if (this.checked) {
-                // Init audio context (silent) to prepare for mic stream
-                audio.init(); 
-                try {
-                    await mic.init(audio.getContext());
-                } catch (err) {
-                    this.checked = false;
-                    alert("Microphone access is required for this feature. Please check your browser settings.");
-                }
-            } else {
-                mic.isListening = false;
-                // We keep the stream open in case they toggle it back, 
-                // but set isListening to false to stop visuals.
-            }
-        });
-
-        /**
-         * ------------------------------------------------------------------
-         * VISUALIZATION ENGINE
-         * ------------------------------------------------------------------
-         */
-
-        class Particle {
-            constructor() {
-                this.init();
-            }
-
-            init() {
-                this.x = randomRange(0, width);
-                this.y = randomRange(0, height);
-                this.size = randomRange(1, 4);
-                this.baseSize = this.size;
-                // SLOWED DOWN: Velocity reduced from 0.5 to 0.2
-                this.vx = randomRange(-0.2, 0.2);
-                this.vy = randomRange(-0.2, 0.2);
-                this.color = randomChoice(dailyTheme.colors);
-                this.alpha = randomRange(0.2, 0.8);
-                // Wind specific props
-                this.windVx = 0;
-                this.windVy = 0;
-            }
-
-            update(breathValue, windForce) {
-                // Decay wind force faster for control
-                this.windVx *= 0.92;
-                this.windVy *= 0.92;
-
-                // Add wind force if present
-                if (windForce > 0) {
-                    const centerX = width / 2;
-                    const centerY = height / 2;
-                    // Vector away from center
-                    const dx = this.x - centerX;
-                    const dy = this.y - centerY;
-                    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-                    
-                    // Normalize and apply force
-                    const dirX = dx / dist;
-                    const dirY = dy / dist;
-                    
-                    // GENTLE push, not explosion
-                    const pushStrength = windForce * 0.3; 
-                    this.windVx += dirX * pushStrength; 
-                    this.windVy += dirY * pushStrength;
-                }
-
-                // Normal movement
-                this.x += this.vx + this.windVx;
-                this.y += this.vy + this.windVy;
-
-                // Wrap around screen
-                if (this.x < 0) this.x = width;
-                if (this.x > width) this.x = 0;
-                if (this.y < 0) this.y = height;
-                if (this.y > height) this.y = 0;
-
-                // React to breath
-                // SLOWED DOWN: Excitement multiplier reduced from 1.5 to 0.5
-                const excitement = 1 + (breathValue * 0.5);
-                this.x += this.vx * excitement; 
-                this.y += this.vy * excitement;
-                this.size = this.baseSize * (1 + breathValue);
-            }
-
-            draw(ctx) {
-                ctx.globalAlpha = this.alpha;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        class GeometricShape {
-            constructor(index, total) {
-                this.index = index;
-                this.total = total;
-                this.angle = (Math.PI * 2 * index) / total;
-                this.distance = randomRange(50, 150);
-                this.color = dailyTheme.colors[index % dailyTheme.colors.length];
-                this.rotationOffset = randomRange(0, Math.PI);
-            }
-
-            draw(ctx, breathValue, time, windForce) {
-                const centerX = width / 2;
-                const centerY = height / 2;
-                
-                // NO JITTER. Instead, we use smooth pulses.
-                const windPulse = windForce * 40; 
-
-                // Breathing expands distance from center
-                const currentDist = this.distance + (breathValue * 100) + (windPulse * 0.5);
-                
-                // SLOWED DOWN: Rotation speed reduced significantly
-                const rot = this.angle + (time * 0.00005) + (breathValue * 0.05);
-
-                const x = centerX + Math.cos(rot) * currentDist;
-                const y = centerY + Math.sin(rot) * currentDist;
-                
-                // Size increases with wind instead of shaking
-                const size = 10 + (breathValue * 20) + windPulse;
-
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.rotate(rot + this.rotationOffset + (breathValue * Math.PI));
-                
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = 2 + (windForce * 2); // Thicken line slightly on exhale
-                ctx.beginPath();
-                if (rand() > 0.5) {
-                    ctx.rect(-size/2, -size/2, size, size);
-                } else {
-                    ctx.arc(0, 0, size/2, 0, Math.PI*2);
-                }
-                ctx.stroke();
-
-                // Connect to center line
-                ctx.globalAlpha = 0.1 * breathValue;
-                ctx.beginPath();
-                ctx.moveTo(0, 0); 
-                ctx.lineTo(-x + centerX, -y + centerY); 
-                ctx.stroke();
-                
-                ctx.restore();
-            }
-        }
-
-        class Wave {
-            constructor(index, total) {
-                this.index = index;
-                this.total = total;
-                this.baseRadius = (index + 1) * 35; 
-                this.color = randomChoice(dailyTheme.colors);
-                // SLOWED DOWN: Wave speed range reduced
-                this.speed = randomRange(0.0002, 0.0008);
-                this.offset = randomRange(0, Math.PI * 2);
-                this.frequency = randomInt(4, 8); 
-            }
-
-            draw(ctx, breathValue, time, windForce) {
-                const centerX = width / 2;
-                const centerY = height / 2;
-                const expansion = breathValue * 120;
-                const currentRadius = this.baseRadius + (this.index * 15 * breathValue) + expansion;
-
-                ctx.beginPath();
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = 2 + (breathValue * 2);
-                ctx.globalAlpha = 0.3 + (breathValue * 0.5);
-
-                for (let a = 0; a <= Math.PI * 2; a += 0.05) {
-                    // Regular wobble
-                    let wobble = Math.sin(a * this.frequency + time * this.speed + this.offset) * (5 + breathValue * 15);
-                    
-                    // Wind Smoothness: Increase amplitude of the wave smoothly, no random noise
-                    if (windForce > 0) {
-                        // Adds a secondary, wider wave motion when blowing
-                        wobble += Math.sin(a * 12 + time * 0.01) * (windForce * 30);
-                    }
-
-                    const r = currentRadius + wobble;
-                    const x = centerX + Math.cos(a) * r;
-                    const y = centerY + Math.sin(a) * r;
-
-                    if (a === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                
-                ctx.closePath();
-                ctx.stroke();
-            }
-        }
-
-        // Initialize Entities
-        let entities = [];
-        const initVisuals = () => {
-            entities = [];
-            if (dailyTheme.type === 'particles') {
-                const count = width < 600 ? 50 : 100;
-                for (let i = 0; i < count; i++) entities.push(new Particle());
-            } else if (dailyTheme.type === 'geometric') {
-                const count = 12;
-                for (let i = 0; i < count; i++) entities.push(new GeometricShape(i, count));
-            } else if (dailyTheme.type === 'waves') {
-                const count = 7; // Number of rings
-                for (let i = 0; i < count; i++) entities.push(new Wave(i, count));
-            }
-        };
-
-        const handleResize = () => {
-            // SMART RESIZE: We simply update dimensions, we DO NOT re-initVisuals()
-            // This prevents the "Jitter" effect on iOS bounce/overscroll
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-            
-            // If the entity list is empty (first load), then we init.
-            if (entities.length === 0) {
-                initVisuals();
-            }
-        };
-        window.addEventListener('resize', handleResize);
-        handleResize();
-
-        /**
-         * ------------------------------------------------------------------
-         * BREATH LOGIC & LOOP
-         * ------------------------------------------------------------------
-         */
-
-        const easeInOutQuad = (t) => t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-
-        let currentBreathValue = 0;
-        let targetBreathValue = 0;
-
-        const updateBreathState = (timestamp) => {
-            if (!STATE.isPlaying) {
-                const idleSpeed = 0.001;
-                currentBreathValue = 0.2 + (Math.sin(timestamp * idleSpeed) * 0.1); 
-                return;
-            }
-
-            const elapsed = timestamp - STATE.phaseStartTime;
-            let duration = 0;
-            let progress = 0;
-
-            switch (STATE.phase) {
-                case 'inhale':
-                    duration = STATE.breathCycle.inhale;
-                    progress = Math.min(elapsed / duration, 1);
-                    targetBreathValue = easeInOutQuad(progress); 
-                    if (progress >= 1) {
-                        STATE.phase = 'holdIn';
-                        STATE.phaseStartTime = timestamp;
-                        document.getElementById('instruction-text').textContent = 'Hold';
-                    }
-                    break;
-
-                case 'holdIn':
-                    duration = STATE.breathCycle.holdIn;
-                    progress = Math.min(elapsed / duration, 1);
-                    targetBreathValue = 1; 
-                    if (progress >= 1) {
-                        STATE.phase = 'exhale';
-                        STATE.phaseStartTime = timestamp;
-                        document.getElementById('instruction-text').textContent = 'Exhale';
-                    }
-                    break;
-
-                case 'exhale':
-                    duration = STATE.breathCycle.exhale;
-                    progress = Math.min(elapsed / duration, 1);
-                    targetBreathValue = 1 - easeInOutQuad(progress); 
-                    if (progress >= 1) {
-                        STATE.phase = 'holdOut';
-                        STATE.phaseStartTime = timestamp;
-                        document.getElementById('instruction-text').textContent = 'Hold';
-                    }
-                    break;
-
-                case 'holdOut':
-                    duration = STATE.breathCycle.holdOut;
-                    progress = Math.min(elapsed / duration, 1);
-                    targetBreathValue = 0; 
-                    if (progress >= 1) {
-                        STATE.phase = 'inhale';
-                        STATE.phaseStartTime = timestamp;
-                        document.getElementById('instruction-text').textContent = 'Inhale';
-                    }
-                    break;
-            }
-
-            currentBreathValue += (targetBreathValue - currentBreathValue) * 0.1;
-            audio.update(currentBreathValue);
-
-            const sessionElapsed = timestamp - STATE.startTime;
-            const remaining = Math.max(0, STATE.duration - sessionElapsed);
-            
-            const minutes = Math.floor(remaining / 60000);
-            const seconds = Math.floor((remaining % 60000) / 1000);
-            document.getElementById('timer-text').textContent = 
-                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-            if (remaining <= 0) {
-                endSession();
-            }
-        };
-
-        const draw = (timestamp) => {
-            // Check mic volume
-            const windForce = mic.getVolume();
-
-            // Clear canvas
-            ctx.fillStyle = 'rgba(5, 5, 7, 0.2)'; 
-            ctx.fillRect(0, 0, width, height);
-
-            updateBreathState(timestamp);
-
-            const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
-            const glowOpacity = 0.05 + (currentBreathValue * 0.1) + (windForce * 0.2); // Wind makes it glow
-            gradient.addColorStop(0, `rgba(${parseInt(dailyTheme.colors[0].slice(1,3),16)}, ${parseInt(dailyTheme.colors[0].slice(3,5),16)}, ${parseInt(dailyTheme.colors[0].slice(5,7),16)}, ${glowOpacity})`);
-            gradient.addColorStop(1, 'rgba(5, 5, 7, 0)');
-            
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0,0,width,height);
-
-            // Draw Entities
-            if (dailyTheme.type === 'geometric') {
-                entities.forEach(entity => entity.draw(ctx, currentBreathValue, timestamp, windForce));
-            } else if (dailyTheme.type === 'particles') {
-                entities.forEach(entity => {
-                    entity.update(currentBreathValue, windForce);
-                    entity.draw(ctx);
-                });
-            } else if (dailyTheme.type === 'waves') {
-                entities.forEach(entity => entity.draw(ctx, currentBreathValue, timestamp, windForce));
-            }
-            
-            // Central Breathing Indicator
-            ctx.beginPath();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-            ctx.lineWidth = 1;
-            const baseRingSize = Math.min(width, height) * 0.15;
-            
-            // Removed shake logic here so the ring stays stable
-            const ringSize = baseRingSize + (currentBreathValue * baseRingSize * 0.5);
-            
-            ctx.arc(width/2, height/2, ringSize, 0, Math.PI * 2);
-            ctx.stroke();
-
-            animationId = requestAnimationFrame(draw);
-        };
-
-        /**
-         * ------------------------------------------------------------------
-         * UI INTERACTIONS
-         * ------------------------------------------------------------------
-         */
-
-        const startSession = async () => {
-            // 1. UI UPDATE FIRST (Immediate Feedback)
-            document.getElementById('start-panel').classList.add('hidden');
-            document.getElementById('session-ui').classList.add('active');
-            document.getElementById('instruction-text').textContent = 'Inhale';
-            
-            STATE.isPlaying = true;
-            STATE.startTime = performance.now();
-            STATE.phaseStartTime = performance.now();
-            STATE.phase = 'inhale';
-            
-            // 2. IMMEDIATE AUDIO UNLOCK (Sync for iOS)
-            // We init the audio context and play a buffer immediately in the click handler
-            audio.init();
-            audio.unlock();
-
-            // 3. PARALLEL PERMISSIONS (Don't await one before the other)
-            // We want both to tap into the "User Gesture" token immediately
-            const promises = [];
-
-            // Resume audio (Async)
-            promises.push(audio.resumeContext().then(() => audio.fadeIn()));
-
-            // Request Mic (Async) - if enabled
-            const micEnabled = document.getElementById('mic-check').checked;
-            if (micEnabled) {
-                // If permission was already granted via the checkbox, this just re-activates the listener flag
-                promises.push(mic.init(audio.getContext()));
-            }
-
-            try {
-                await Promise.all(promises);
-            } catch (error) {
-                console.warn("Audio/Mic initialization warning:", error);
-            }
-        };
-
-        const endSession = () => {
-            STATE.isPlaying = false;
-            STATE.phase = 'idle';
-            
-            // Safe stop
-            try {
-                audio.stop();
-                mic.isListening = false;
-            } catch(e) { console.log(e); }
-            
-            document.getElementById('start-panel').classList.remove('hidden');
-            document.getElementById('session-ui').classList.remove('active');
-            const btn = document.getElementById('start-btn');
-            btn.textContent = "Session Complete - Again?";
-            document.getElementById('daily-theme-name').textContent = "Good Job";
-            document.querySelector('h2').textContent = "Relaxed?";
-        };
-
-        document.getElementById('start-btn').addEventListener('click', startSession);
-
-        animationId = requestAnimationFrame(draw);
-
-    </script>
+   <canvas id="art-canvas"></canvas>
+
+   <!-- Start Screen -->
+   <div class="ui-layer">
+       <div class="control-panel" id="start-panel">
+           <h1 id="daily-theme-name">Daily Visualization</h1>
+           <h2 id="main-title">Breathe to Begin</h2>
+           
+           <div class="stats">
+               <div class="stat-item">
+                   <span id="breath-count">4-4-4-4</span>
+                   Technique
+               </div>
+               <div class="stat-item">
+                   <span>5:00</span>
+                   Duration
+               </div>
+           </div>
+
+           <!-- Instructions -->
+           <div class="instructions">
+               <div class="instruction-item">
+                   <span class="instruction-icon">🧘</span>
+                   <span>Find a comfortable position sitting or lying down.</span>
+               </div>
+               <div class="instruction-item">
+                   <span class="instruction-icon">🎧</span>
+                   <span>Wear headphones for the best immersive experience.</span>
+               </div>
+               <div class="instruction-item">
+                   <span class="instruction-icon">🌬️</span>
+                   <span>Follow the rhythm of the expanding light.</span>
+               </div>
+           </div>
+
+           <!-- Theme Randomizer -->
+           <button class="theme-shuffle-btn" id="theme-btn">
+               <span class="icon">✨</span> Change Aurora
+           </button>
+
+           <div class="btn-group">
+               <button class="btn-primary" id="start-btn">Start Session</button>
+           </div>
+       </div>
+   </div>
+
+   <!-- Active Session Overlay -->
+   <div class="session-ui" id="session-ui">
+       <div class="breath-instruction" id="instruction-text">Inhale</div>
+       <div class="timer" id="timer-text">05:00</div>
+   </div>
+
+   <div class="date-display" id="date-text"></div>
+
+   <script>
+       /**
+        * ------------------------------------------------------------------
+        * CORE UTILITIES: SEEDED RNG & DATE
+        * ------------------------------------------------------------------
+        */
+       
+       // Get today's date string YYYYMMDD for seeding
+       const getDailySeed = () => {
+           const now = new Date();
+           const year = now.getFullYear();
+           const month = String(now.getMonth() + 1).padStart(2, '0');
+           const day = String(now.getDate()).padStart(2, '0');
+           return parseInt(`${year}${month}${day}`);
+       };
+
+       const todaySeed = getDailySeed();
+
+       // Simple mulberry32 generator for seeded random numbers
+       function mulberry32(a) {
+           return function() {
+               var t = a += 0x6D2B79F5;
+               t = Math.imul(t ^ t >>> 15, t | 1);
+               t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+               return ((t ^ t >>> 14) >>> 0) / 4294967296;
+           }
+       }
+
+       const rand = mulberry32(todaySeed);
+
+       // Helper to get random range based on daily seed
+       const randomRange = (min, max) => min + rand() * (max - min);
+       const randomInt = (min, max) => Math.floor(randomRange(min, max));
+       const randomChoice = (arr) => arr[Math.floor(rand() * arr.length)];
+
+       /**
+        * ------------------------------------------------------------------
+        * CONFIGURATION & STATE
+        * ------------------------------------------------------------------
+        */
+
+       const canvas = document.getElementById('art-canvas');
+       const ctx = canvas.getContext('2d');
+       let width, height;
+       let animationId;
+       
+       // App State
+       const STATE = {
+           isPlaying: false,
+           phase: 'idle', // idle, inhale, hold_in, exhale, hold_out
+           phaseProgress: 0, // 0.0 to 1.0
+           phaseStartTime: 0,
+           startTime: 0,
+           duration: 5 * 60 * 1000, // Fixed 5 minutes
+           breathCycle: {
+               inhale: 4000,
+               holdIn: 4000,
+               exhale: 4000,
+               holdOut: 4000
+           },
+           accumulatedBreath: 0
+       };
+
+       // UNIFIED RING THEMES (All are variations of the ring concept)
+       const THEMES = [
+           { name: "Aurora Borealis", colors: ["#00ff9d", "#00b8ff", "#7d5fff"], style: "smooth" },
+           { name: "Neon Pulse", colors: ["#FF00CC", "#333399", "#00CCFF"], style: "jagged" },
+           { name: "Cyber Data", colors: ["#00d2d3", "#2e86de", "#5f27cd"], style: "dashed" },
+           { name: "Soft Mist", colors: ["#a29bfe", "#6c5ce7", "#dfe6e9"], style: "soft" },
+           { name: "Golden Echo", colors: ["#e1b12c", "#c23616", "#192a56"], style: "double" },
+           { name: "Crimson Tide", colors: ["#d63031", "#e17055", "#fab1a0"], style: "smooth" },
+           { name: "Deep Sea", colors: ["#006994", "#001e36", "#48dbfb"], style: "soft" },
+           { name: "Forest Spirit", colors: ["#558c42", "#1e3b25", "#a6d685"], style: "jagged" }
+       ];
+
+       // Set initial daily theme (Defaulting to Aurora look for consistency)
+       let currentTheme = THEMES[todaySeed % THEMES.length];
+       if(rand() > 0.5) currentTheme.colors = [...currentTheme.colors].reverse();
+       
+       const applyTheme = (theme) => {
+           currentTheme = theme;
+           document.documentElement.style.setProperty('--primary-color', currentTheme.colors[0]);
+           document.documentElement.style.setProperty('--secondary-color', currentTheme.colors[2]);
+           document.getElementById('daily-theme-name').textContent = currentTheme.name;
+           initVisuals();
+       };
+
+       // Apply initial theme
+       document.documentElement.style.setProperty('--primary-color', currentTheme.colors[0]);
+       document.documentElement.style.setProperty('--secondary-color', currentTheme.colors[2]);
+       document.getElementById('daily-theme-name').textContent = currentTheme.name;
+       
+       // Theme Randomizer
+       document.getElementById('theme-btn').addEventListener('click', () => {
+           let newTheme;
+           do {
+               newTheme = THEMES[Math.floor(Math.random() * THEMES.length)];
+           } while (newTheme.name === currentTheme.name);
+           
+           if (Math.random() > 0.5) {
+               newTheme = { ...newTheme, colors: [...newTheme.colors].reverse() };
+           }
+           
+           applyTheme(newTheme);
+       });
+       
+       const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+       document.getElementById('date-text').textContent = new Date().toLocaleDateString('en-US', dateOptions);
+
+       /**
+        * ------------------------------------------------------------------
+        * AUDIO ENGINE
+        * ------------------------------------------------------------------
+        */
+
+       class BreathAudio {
+           constructor() {
+               this.ctx = null;
+               this.masterGain = null;
+               this.filter = null;
+               this.osc1 = null;
+               this.osc2 = null;
+               this.isInitialized = false;
+           }
+
+           init() {
+               if (this.isInitialized) return;
+               
+               const AudioContext = window.AudioContext || window.webkitAudioContext;
+               this.ctx = new AudioContext();
+               
+               this.masterGain = this.ctx.createGain();
+               this.masterGain.gain.setValueAtTime(0, this.ctx.currentTime);
+               this.masterGain.connect(this.ctx.destination);
+
+               this.filter = this.ctx.createBiquadFilter();
+               this.filter.type = 'lowpass';
+               this.filter.frequency.setValueAtTime(200, this.ctx.currentTime);
+               this.filter.Q.value = 1;
+               this.filter.connect(this.masterGain);
+
+               this.osc1 = this.ctx.createOscillator();
+               this.osc1.type = 'sine';
+               this.osc1.frequency.setValueAtTime(110, this.ctx.currentTime);
+               this.osc1.connect(this.filter);
+
+               this.osc2 = this.ctx.createOscillator();
+               this.osc2.type = 'triangle';
+               this.osc2.frequency.setValueAtTime(114, this.ctx.currentTime);
+               
+               const osc2Gain = this.ctx.createGain();
+               osc2Gain.gain.value = 0.6;
+               this.osc2.connect(osc2Gain);
+               osc2Gain.connect(this.filter);
+
+               this.osc1.start();
+               this.osc2.start();
+
+               this.isInitialized = true;
+           }
+
+           unlock() {
+               if (!this.ctx) return;
+               const buffer = this.ctx.createBuffer(1, 1, 22050);
+               const source = this.ctx.createBufferSource();
+               source.buffer = buffer;
+               source.connect(this.ctx.destination);
+               source.start(0);
+           }
+
+           async resumeContext() {
+               if (this.ctx && this.ctx.state === 'suspended') {
+                   await this.ctx.resume();
+               }
+           }
+
+           fadeIn() {
+               if (!this.ctx) return;
+               const now = this.ctx.currentTime;
+               this.masterGain.gain.cancelScheduledValues(now);
+               this.masterGain.gain.setValueAtTime(0, now);
+               this.masterGain.gain.setTargetAtTime(0.3, now, 1.5);
+           }
+
+           stop() {
+               if (!this.ctx) return;
+               const now = this.ctx.currentTime;
+               this.masterGain.gain.cancelScheduledValues(now);
+               this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+               this.masterGain.gain.linearRampToValueAtTime(0, now + 2);
+           }
+
+           update(breathValue) {
+               if (!this.ctx || !this.isInitialized) return;
+               const now = this.ctx.currentTime;
+               const targetFreq = 150 + (breathValue * 450);
+               this.filter.frequency.setTargetAtTime(targetFreq, now, 0.1);
+               const targetVol = 0.2 + (breathValue * 0.2);
+               this.masterGain.gain.setTargetAtTime(targetVol, now, 0.1);
+           }
+       }
+
+       const audio = new BreathAudio();
+
+       /**
+        * ------------------------------------------------------------------
+        * VISUALIZATION ENGINE - UNIFIED RING SYSTEM
+        * ------------------------------------------------------------------
+        */
+
+       class RingVisual {
+           constructor(index, total) {
+               this.index = index;
+               this.total = total;
+               // Base radius spreads them out
+               this.baseRadius = (index + 1) * 35;
+               this.color = randomChoice(currentTheme.colors);
+               // Slow rotation speed
+               this.speed = randomRange(0.0002, 0.0008);
+               this.offset = randomRange(0, Math.PI * 2);
+               // Frequency for wobble
+               this.frequency = randomInt(4, 8);
+               
+               // Style specific props
+               this.dashPattern = [randomInt(5, 20), randomInt(10, 30)];
+           }
+
+           draw(ctx, breathValue, time, hueShift) {
+               const centerX = width / 2;
+               const centerY = height / 2;
+               const expansion = breathValue * 120;
+               const currentRadius = this.baseRadius + (this.index * 15 * breathValue) + expansion;
+
+               ctx.save();
+               ctx.filter = `hue-rotate(${hueShift}deg)`;
+               
+               ctx.beginPath();
+               ctx.strokeStyle = this.color;
+               
+               // Style Logic
+               if (currentTheme.style === 'soft') {
+                   ctx.lineWidth = 4 + (breathValue * 4);
+                   ctx.globalAlpha = 0.1 + (breathValue * 0.2);
+                   // Soft rings are just circles with heavier stroke/alpha
+                   ctx.arc(centerX, centerY, currentRadius, 0, Math.PI * 2);
+               }
+               else if (currentTheme.style === 'dashed') {
+                   ctx.lineWidth = 2 + (breathValue * 2);
+                   ctx.globalAlpha = 0.4 + (breathValue * 0.4);
+                   ctx.setLineDash(this.dashPattern);
+                   // Rotate the dashed ring
+                   const rot = time * (this.speed * (this.index % 2 === 0 ? 1 : -1));
+                   ctx.translate(centerX, centerY);
+                   ctx.rotate(rot);
+                   ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
+                   ctx.setLineDash([]); // Reset
+               }
+               else {
+                   // Smooth, Jagged, Double all use the Polar Vertex loop
+                   ctx.lineWidth = 2 + (breathValue * 2);
+                   ctx.globalAlpha = 0.3 + (breathValue * 0.5);
+                   
+                   // Double style draws two lines
+                   const drawLoop = (radiusOffset) => {
+                       for (let a = 0; a <= Math.PI * 2; a += 0.05) {
+                           let wobble = 0;
+                           
+                           if (currentTheme.style === 'smooth' || currentTheme.style === 'double') {
+                               wobble = Math.sin(a * this.frequency + time * this.speed + this.offset) * (5 + breathValue * 15);
+                           } else if (currentTheme.style === 'jagged') {
+                               // Triangle wave approximation for jagged look
+                               let saw = Math.abs((((a * this.frequency + time * this.speed) % Math.PI) / Math.PI) - 0.5);
+                               wobble = saw * (15 + breathValue * 20);
+                           }
+
+                           const r = currentRadius + radiusOffset + wobble;
+                           const x = centerX + Math.cos(a) * r;
+                           const y = centerY + Math.sin(a) * r;
+
+                           if (a === 0) ctx.moveTo(x, y);
+                           else ctx.lineTo(x, y);
+                       }
+                       ctx.closePath();
+                   };
+
+                   drawLoop(0);
+                   if (currentTheme.style === 'double') {
+                       // Draw a second concentric line
+                       drawLoop(10);
+                   }
+               }
+               
+               ctx.stroke();
+               ctx.restore();
+           }
+       }
+
+       // Initialize Entities
+       let entities = [];
+       const initVisuals = () => {
+           entities = [];
+           const count = 7; // Consistently 7 rings for that centered look
+           for (let i = 0; i < count; i++) {
+               entities.push(new RingVisual(i, count));
+           }
+       };
+
+       const handleResize = () => {
+           // SMART RESIZE: We simply update dimensions, we DO NOT re-initVisuals()
+           // This prevents the "Jitter" effect on iOS bounce/overscroll
+           width = canvas.width = window.innerWidth;
+           height = canvas.height = window.innerHeight;
+           
+           // If the entity list is empty (first load), then we init.
+           if (entities.length === 0) {
+               initVisuals();
+           }
+       };
+       window.addEventListener('resize', handleResize);
+       handleResize();
+
+       /**
+        * ------------------------------------------------------------------
+        * BREATH LOGIC & LOOP
+        * ------------------------------------------------------------------
+        */
+
+       const easeInOutQuad = (t) => t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+       let currentBreathValue = 0;
+       let targetBreathValue = 0;
+
+       const updateBreathState = (timestamp) => {
+           if (!STATE.isPlaying) {
+               const idleSpeed = 0.001;
+               currentBreathValue = 0.2 + (Math.sin(timestamp * idleSpeed) * 0.1);
+               return;
+           }
+
+           const elapsed = timestamp - STATE.phaseStartTime;
+           let duration = 0;
+           let progress = 0;
+
+           switch (STATE.phase) {
+               case 'inhale':
+                   duration = STATE.breathCycle.inhale;
+                   progress = Math.min(elapsed / duration, 1);
+                   targetBreathValue = easeInOutQuad(progress);
+                   if (progress >= 1) {
+                       STATE.phase = 'holdIn';
+                       STATE.phaseStartTime = timestamp;
+                       document.getElementById('instruction-text').textContent = 'Hold';
+                   }
+                   break;
+
+               case 'holdIn':
+                   duration = STATE.breathCycle.holdIn;
+                   progress = Math.min(elapsed / duration, 1);
+                   targetBreathValue = 1;
+                   if (progress >= 1) {
+                       STATE.phase = 'exhale';
+                       STATE.phaseStartTime = timestamp;
+                       document.getElementById('instruction-text').textContent = 'Exhale';
+                   }
+                   break;
+
+               case 'exhale':
+                   duration = STATE.breathCycle.exhale;
+                   progress = Math.min(elapsed / duration, 1);
+                   targetBreathValue = 1 - easeInOutQuad(progress);
+                   if (progress >= 1) {
+                       STATE.phase = 'holdOut';
+                       STATE.phaseStartTime = timestamp;
+                       document.getElementById('instruction-text').textContent = 'Hold';
+                   }
+                   break;
+
+               case 'holdOut':
+                   duration = STATE.breathCycle.holdOut;
+                   progress = Math.min(elapsed / duration, 1);
+                   targetBreathValue = 0;
+                   if (progress >= 1) {
+                       STATE.phase = 'inhale';
+                       STATE.phaseStartTime = timestamp;
+                       document.getElementById('instruction-text').textContent = 'Inhale';
+                   }
+                   break;
+           }
+
+           currentBreathValue += (targetBreathValue - currentBreathValue) * 0.1;
+           STATE.accumulatedBreath += currentBreathValue * 0.05;
+           audio.update(currentBreathValue);
+
+           const sessionElapsed = timestamp - STATE.startTime;
+           const remaining = Math.max(0, STATE.duration - sessionElapsed);
+           
+           const minutes = Math.floor(remaining / 60000);
+           const seconds = Math.floor((remaining % 60000) / 1000);
+           document.getElementById('timer-text').textContent =
+               `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+           if (remaining <= 0) {
+               endSession();
+           }
+       };
+
+       const draw = (timestamp) => {
+           // Clear canvas
+           ctx.fillStyle = 'rgba(5, 5, 7, 0.2)';
+           ctx.fillRect(0, 0, width, height);
+
+           updateBreathState(timestamp);
+
+           const personalHueShift = STATE.accumulatedBreath % 360;
+
+           const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
+           const glowOpacity = 0.05 + (currentBreathValue * 0.1);
+           gradient.addColorStop(0, `rgba(${parseInt(currentTheme.colors[0].slice(1,3),16)}, ${parseInt(currentTheme.colors[0].slice(3,5),16)}, ${parseInt(currentTheme.colors[0].slice(5,7),16)}, ${glowOpacity})`);
+           gradient.addColorStop(1, 'rgba(5, 5, 7, 0)');
+           
+           ctx.fillStyle = gradient;
+           ctx.fillRect(0,0,width,height);
+
+           // Draw Rings
+           entities.forEach(entity => entity.draw(ctx, currentBreathValue, timestamp, personalHueShift));
+           
+           // Central Breathing Indicator
+           ctx.beginPath();
+           ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+           ctx.lineWidth = 1;
+           const baseRingSize = Math.min(width, height) * 0.15;
+           const ringSize = baseRingSize + (currentBreathValue * baseRingSize * 0.5);
+           ctx.arc(width/2, height/2, ringSize, 0, Math.PI * 2);
+           ctx.stroke();
+
+           animationId = requestAnimationFrame(draw);
+       };
+
+       /**
+        * ------------------------------------------------------------------
+        * UI INTERACTIONS
+        * ------------------------------------------------------------------
+        */
+
+       const startSession = async () => {
+           document.getElementById('start-panel').classList.add('hidden');
+           document.getElementById('session-ui').classList.add('active');
+           document.getElementById('instruction-text').textContent = 'Inhale';
+           
+           STATE.isPlaying = true;
+           STATE.startTime = performance.now();
+           STATE.phaseStartTime = performance.now();
+           STATE.phase = 'inhale';
+           STATE.accumulatedBreath = 0;
+           
+           audio.init();
+           audio.unlock();
+
+           const promises = [];
+           promises.push(audio.resumeContext().then(() => audio.fadeIn()));
+
+           try {
+               await Promise.all(promises);
+           } catch (error) {
+               console.warn("Audio initialization warning:", error);
+           }
+       };
+
+       const endSession = () => {
+           STATE.isPlaying = false;
+           STATE.phase = 'idle';
+           try { audio.stop(); } catch(e) { console.log(e); }
+           
+           document.getElementById('start-panel').classList.remove('hidden');
+           document.getElementById('session-ui').classList.remove('active');
+           
+           const btn = document.getElementById('start-btn');
+           btn.textContent = "Breathe Again";
+           document.getElementById('daily-theme-name').textContent = "Good Job";
+           document.querySelector('#main-title').textContent = "Relaxed?";
+       };
+
+       document.getElementById('start-btn').addEventListener('click', startSession);
+
+       animationId = requestAnimationFrame(draw);
+
+   </script>
 </body>
 </html>
