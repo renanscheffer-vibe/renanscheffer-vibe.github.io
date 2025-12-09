@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golden Hour & Geometry</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #555;
+            transition: background-color 1.5s ease;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .wall-texture {
+            position: absolute;
+            inset: 0;
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 10;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+
+        #main-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #dust-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 20;
+            pointer-events: none;
+            mix-blend-mode: screen; 
+        }
+
+        .ui-label {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            text-align: right;
+            color: rgba(255, 255, 255, 0.9);
+            z-index: 100;
+            pointer-events: none;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+        }
+        .ui-label h1 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 5px 0; color: #ffdca0; }
+        .ui-label p { font-size: 12px; margin: 0; opacity: 0.9; }
+        
+        .click-hint {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255,220,180,0.4);
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 0;
+            animation: fadeOut 3s forwards 2s;
+        }
+
+        @keyframes fadeOut { to { opacity: 0; } }
+    </style>
+</head>
+<body onclick="regenerate()">
+
+    <div class="wall-texture"></div>
+    <div class="click-hint">Click for new Golden Hour scene</div>
+
+    <canvas id="main-canvas"></canvas>
+    <canvas id="dust-canvas"></canvas>
+
+    <div class="ui-label">
+        <h1 id="scene-name">Golden Hour</h1>
+        <p id="scene-desc">Initializing...</p>
+    </div>
+
+    <script>
+    (function(){
+        // --- CONFIGURATION ---
+        const WALLS = ['#5e5850', '#6b5e54', '#594e46', '#665c52', '#4a423b']; 
+        
+        const LIGHT_COLORS = [
+            { r:255, g:190, b:100, name: "Sunset Amber" }, 
+            { r:255, g:160, b:80, name: "Deep Orange" },
+            { r:255, g:210, b:140, name: "Soft Honey" },
+            { r:255, g:180, b:120, name: "Dusty Rose" }
+        ];
+
+        const cvs = document.getElementById('main-canvas');
+        const ctx = cvs.getContext('2d');
+        
+        let w, h;
+        // INITIAL DEFAULT STATE CONFIGURATION
+        let currentWall = WALLS[0];
+        let currentLight = LIGHT_COLORS[1]; // Deep Orange (Index 1)
+        let currentLayout = 'venetian';     // Default Layout
+        let seed = 0.1;                     
+
+        function resize() {
+            w = cvs.width = window.innerWidth;
+            h = cvs.height = window.innerHeight;
+            drawScene();
+        }
+
+        function regenerate() {
+            seed = Math.random();
+            currentWall = WALLS[Math.floor(Math.random() * WALLS.length)];
+            currentLight = LIGHT_COLORS[Math.floor(Math.random() * LIGHT_COLORS.length)];
+            
+            // Randomly select a layout
+            const layoutRoll = Math.random();
+            if (layoutRoll < 0.16) currentLayout = 'single';
+            else if (layoutRoll < 0.32) currentLayout = 'double';
+            else if (layoutRoll < 0.48) currentLayout = 'triple';
+            else if (layoutRoll < 0.64) currentLayout = 'arch';
+            else if (layoutRoll < 0.8) currentLayout = 'round';
+            else currentLayout = 'venetian';
+
+            document.body.style.backgroundColor = currentWall;
+            drawScene();
+            initDust(); 
+        }
+
+        function drawScene() {
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Perspective Calculations
+            const angleVal = (seed - 0.5) * 2; 
+            const skewOffset = angleVal * (w * 0.4); 
+            const spread = 0.5 + (seed * 0.3); 
+            
+            // 2. Draw Light Shapes (Additive)
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.filter = 'blur(6px)'; 
+            
+            let windows = [];
+            const topY = h * (0.1 + Math.random() * 0.1);
+            const botY = h * (0.8 + Math.random() * 0.1);
+            const cx = w / 2;
+            
+            // Map layouts to geometries
+            if (currentLayout === 'single' || currentLayout === 'venetian') {
+                const topW = w * 0.5; 
+                const botW = w * 0.5 * spread;
+                windows.push({ cx: cx, topW: topW, botW: botW });
+            } 
+            else if (currentLayout === 'arch') {
+                const topW = w * 0.5; 
+                const botW = w * 0.5 * spread;
+                windows.push({ cx: cx, topW: topW, botW: botW, isArch: true });
+            }
+            else if (currentLayout === 'round') {
+                // For a round window, we treat it as a single projected ellipse
+                const diameter = w * 0.45; 
+                windows.push({ cx: cx, width: diameter, isRound: true });
+            }
+            else if (currentLayout === 'double') {
+                const gap = w * 0.04;
+                const topW = w * 0.22; 
+                const botW = w * 0.22 * spread;
+                windows.push({ cx: cx - topW * 0.8 - gap, topW: topW, botW: botW }); 
+                windows.push({ cx: cx + topW * 0.8 + gap, topW: topW, botW: botW }); 
+            } 
+            else if (currentLayout === 'triple') {
+                const gap = w * 0.025;
+                const topW = w * 0.13; 
+                const botW = w * 0.13 * spread;
+                windows.push({ cx: cx - topW * 1.5 - gap, topW: topW, botW: botW }); 
+                windows.push({ cx: cx, topW: topW, botW: botW }); 
+                windows.push({ cx: cx + topW * 1.5 + gap, topW: topW, botW: botW }); 
+            }
+
+            // Global Skew Helper
+            const getSkewX = (y) => {
+                return (y - topY) / (botY - topY) * skewOffset;
+            };
+
+            // Render Light Beams
+            windows.forEach(win => {
+                const gradX = win.cx - (skewOffset * 0.3); 
+                const gradY = topY + (botY - topY) * 0.2; 
+
+                const grad = ctx.createRadialGradient(gradX, gradY, 0, gradX + (skewOffset * 0.1), gradY + (botY-topY)*0.5, h*0.8);
+                
+                grad.addColorStop(0, `rgba(${currentLight.r},${currentLight.g},${currentLight.b}, 0.95)`);
+                grad.addColorStop(0.5, `rgba(${currentLight.r},${currentLight.g},${currentLight.b}, 0.5)`);
+                grad.addColorStop(1, `rgba(${currentLight.r},${currentLight.g},${currentLight.b}, 0)`);
+                ctx.fillStyle = grad;
+
+                ctx.beginPath();
+                
+                const p1 = { x: win.cx - win.topW/2, y: topY };
+                const p2 = { x: win.cx + win.topW/2, y: topY };
+                const p3 = { x: win.cx + win.botW/2 + getSkewX(botY), y: botY };
+                const p4 = { x: win.cx - win.botW/2 + getSkewX(botY), y: botY };
+
+                if (win.isArch) {
+                    const archHeight = (p2.x - p1.x) * 1.0; 
+                    const peakY = topY - archHeight;
+                    const peakX = win.cx + getSkewX(peakY); 
+                    
+                    ctx.moveTo(p1.x, p1.y); 
+                    const cpY = topY - archHeight;
+                    const cp1X = p1.x + getSkewX(cpY); 
+                    const cp2X = p2.x + getSkewX(cpY);
+
+                    ctx.bezierCurveTo(cp1X, cpY, cp2X, cpY, p2.x, p2.y);
+                    ctx.lineTo(p3.x, p3.y);
+                    ctx.lineTo(p4.x, p4.y);
+                } 
+                else if (win.isRound) {
+                    // NEW ROUND LOGIC: Single Projected Ellipse
+                    // Calculate geometrical properties for projection
+                    const midY = (topY + botY) / 2;
+                    const skewAtMid = getSkewX(midY);
+                    
+                    // We store these on the window object so the Frame drawer can reuse them
+                    win.projCX = win.cx + skewAtMid;
+                    win.projCY = midY;
+                    win.projRX = win.width / 2; // Width radius
+                    win.projRY = (botY - topY) / 2; // Height radius
+                    win.projRot = (skewOffset / w) * 0.6; // Rotation derived from skew
+
+                    ctx.ellipse(win.projCX, win.projCY, win.projRX, win.projRY, win.projRot, 0, Math.PI * 2);
+                }
+                else {
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.lineTo(p3.x, p3.y);
+                    ctx.lineTo(p4.x, p4.y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            });
+
+            // 3. Draw Frames (Subtractive)
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.filter = 'blur(6px)';
+
+            windows.forEach(win => {
+                const p1 = { x: win.cx - win.topW/2, y: topY };
+                const p2 = { x: win.cx + win.topW/2, y: topY };
+                const p3 = { x: win.cx + win.botW/2 + getSkewX(botY), y: botY };
+                const p4 = { x: win.cx - win.botW/2 + getSkewX(botY), y: botY };
+                
+                drawWindowFrame(p1, p2, p3, p4, win, win.cx, topY, botY, getSkewX);
+            });
+
+            // 4. Foliage removed entirely
+            updateUI();
+            ctx.filter = 'none';
+        }
+
+        // --- FRAMING LOGIC ---
+        function drawWindowFrame(p1, p2, p3, p4, win, cx, topY, botY, getSkewX) {
+            ctx.fillStyle = 'black'; 
+            ctx.strokeStyle = 'black';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 12;
+            
+            const lerp = (a, b, t) => a + (b - a) * t;
+            const pt = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) });
+
+            const drawExtendedLine = (start, end, extStart, extEnd) => {
+                const dx = end.x - start.x;
+                const dy = end.y - start.y;
+                const len = Math.sqrt(dx*dx + dy*dy);
+                if(len === 0) return;
+                const ux = dx / len;
+                const uy = dy / len;
+                ctx.beginPath();
+                ctx.moveTo(start.x - ux * extStart, start.y - uy * extStart);
+                ctx.lineTo(end.x + ux * extEnd, end.y + uy * extEnd);
+                ctx.stroke();
+            };
+
+            const drawLine = (startPct, endPct, isVert) => {
+                let s, e;
+                if (isVert) { s = pt(p1, p2, startPct); e = pt(p4, p3, startPct); } 
+                else { s = pt(p1, p4, startPct); e = pt(p2, p3, startPct); }
+                drawExtendedLine(s, e, 15, 15);
+            };
+
+            if (win.isRound) {
+                // ROUND WINDOW FRAME (Shadows)
+                ctx.save();
+                ctx.translate(win.projCX, win.projCY);
+                ctx.rotate(win.projRot);
+                
+                // Vertical Bar
+                ctx.beginPath();
+                ctx.moveTo(0, -win.projRY * 1.1);
+                ctx.lineTo(0, win.projRY * 1.1);
+                ctx.stroke();
+                
+                // Horizontal Bar
+                ctx.beginPath();
+                ctx.moveTo(-win.projRX * 1.1, 0);
+                ctx.lineTo(win.projRX * 1.1, 0);
+                ctx.stroke();
+                
+                ctx.restore();
+
+            } else if (win.isArch) {
+                // FIXED ARCH LOGIC
+                const archHeight = (p2.x - p1.x) * 1.0; 
+                const peakY = topY - archHeight;
+                const cpY = topY - archHeight;
+                const cp1X = p1.x + getSkewX(cpY); 
+                const cp2X = p2.x + getSkewX(cpY);
+
+                const getBezierPoint = (t, start, cp1, cp2, end) => {
+                    const i = 1 - t;
+                    const x = (i*i*i * start.x) + (3 * i*i * t * cp1.x) + (3 * i * t*t * cp2.x) + (t*t*t * end.x);
+                    const y = (i*i*i * start.y) + (3 * i*i * t * cp1.y) + (3 * i * t*t * cp2.y) + (t*t*t * end.y);
+                    return {x, y};
+                };
+
+                // REMOVED: Initial drawing of the bar from here. 
+                // We will draw it at the end to cover the seams.
+
+                const midBot = pt(p4, p3, 0.5);
+                const midTopBase = pt(p1, p2, 0.5);
+                const archApex = getBezierPoint(0.5, p1, {x:cp1X, y:cpY}, {x:cp2X, y:cpY}, p2);
+                
+                // Vertical Mullion for the bottom rectangular part
+                drawExtendedLine(midBot, midTopBase, 15, 0);
+
+                // CLIP: Prevent inner arch details from bleeding below the spring line
+                ctx.save();
+                ctx.beginPath();
+                
+                // CHANGED: Set clip to +6px. This is just enough to catch the rounded ends 
+                // but ensures they stay within the coverage area of the bar we draw next.
+                ctx.rect(0, 0, w, topY + 6); 
+                
+                ctx.clip();
+
+                // --- ARCH FAN PATTERN ---
+                // Lowered diagonals closer to 45 degrees
+                const spokeTs = [0.15, 0.5, 0.85];
+                spokeTs.forEach(t => {
+                    const dest = getBezierPoint(t, p1, {x:cp1X, y:cpY}, {x:cp2X, y:cpY}, p2);
+                    drawExtendedLine(midTopBase, dest, 0, 0);
+                });
+
+                // 2. Inner Concentric Arch (50% scale)
+                const ratio = 0.5;
+                const iP1 = pt(midTopBase, p1, ratio);
+                const iP2 = pt(midTopBase, p2, ratio);
+                const iCpY = topY - (archHeight * ratio);
+                const iCp1X = midTopBase.x + (cp1X - midTopBase.x) * ratio;
+                const iCp2X = midTopBase.x + (cp2X - midTopBase.x) * ratio;
+
+                ctx.beginPath();
+                ctx.moveTo(iP1.x, iP1.y);
+                ctx.bezierCurveTo(iCp1X, iCpY, iCp2X, iCpY, iP2.x, iP2.y);
+                ctx.stroke();
+
+                // 3. Central Hub (Semi-circle)
+                const hubR = 20;
+                ctx.beginPath();
+                ctx.arc(midTopBase.x, midTopBase.y, hubR, Math.PI, 0); 
+                ctx.fill();
+                
+                ctx.restore(); // END CLIP
+
+                // CHANGED: Draw the Spring Line (Arch Base) here, at the end.
+                // Moved down by +5px to center it over the clipping line, hiding the seam perfectly.
+                drawExtendedLine(
+                    {x: p1.x, y: p1.y + 5}, 
+                    {x: p2.x, y: p2.y + 5}, 
+                    15, 15
+                );
+
+                // Horizontal bar for the rectangular part
+                drawLine(0.5, 0.5, false);
+
+            } else if (currentLayout === 'venetian') {
+                // VENETIAN BLINDS LOGIC
+                const numSlats = 22;
+                for(let i=0; i<=numSlats; i++) {
+                    const t = i / numSlats;
+                    drawLine(t, t, false);
+                }
+                
+                const drawString = (pct) => {
+                    const topPt = pt(p1, p2, pct);
+                    const botPt = pt(p4, p3, pct);
+                    ctx.lineWidth = 6; 
+                    drawExtendedLine(topPt, botPt, 15, 15);
+                };
+                
+                drawString(0.25);
+                drawString(0.75);
+                
+                ctx.lineWidth = 12;
+
+            } else if (currentLayout === 'triple') {
+                // Horizontal bar center
+                drawLine(0.5, 0.5, false); 
+            } else {
+                // GRAND SINGLE / DOUBLE HUNG
+                // Re-added vertical bar as requested to create a grid pattern
+                drawLine(0.5, 0.5, true); 
+                
+                // Horizontal bars
+                drawLine(0.33, 0.33, false); 
+                drawLine(0.66, 0.66, false); 
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('scene-name').innerText = currentLight.name;
+            const wNames = { 
+                'single': 'Architecture: Grand Single', 
+                'double': 'Architecture: Double Hung', 
+                'triple': 'Architecture: Triple Lancet', 
+                'arch': 'Architecture: Royal Arch',
+                'round': 'Architecture: Oculus',
+                'venetian': 'Architecture: Venetian Blinds' 
+            };
+            document.getElementById('scene-desc').innerText = wNames[currentLayout];
+        }
+
+        // --- DUST ---
+        const dcvs = document.getElementById('dust-canvas');
+        const dctx = dcvs.getContext('2d');
+        let particles = [];
+
+        function initDust() {
+            dcvs.width = window.innerWidth;
+            dcvs.height = window.innerHeight;
+            particles = [];
+            for(let i=0; i<300; i++) {
+                particles.push({
+                    x: Math.random() * w, y: Math.random() * h,
+                    vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3 - 0.1,
+                    size: Math.random() * 1.5 + 0.5, offset: Math.random() * 100
+                });
+            }
+        }
+
+        function renderDust() {
+            dctx.clearRect(0,0,w,h);
+            dctx.fillStyle = `rgba(${currentLight.r},${currentLight.g},${currentLight.b}, 0.7)`; 
+            dctx.beginPath();
+            particles.forEach(p => {
+                p.x += p.vx + Math.sin(p.y * 0.01 + p.offset) * 0.1; p.y += p.vy;
+                if(p.y < 0) p.y = h; if(p.x < 0) p.x = w; if(p.x > w) p.x = 0;
+                dctx.moveTo(p.x, p.y); dctx.arc(p.x, p.y, p.size * 0.6, 0, Math.PI * 2); 
+            });
+            dctx.fill();
+            
+            if (w > 0 && h > 0) {
+                dctx.globalCompositeOperation = 'destination-in';
+                // Increased blur from 12px to 40px to effectively bloom the dust 
+                // outside the strict edges of the light beams
+                dctx.filter = 'blur(40px)'; 
+                dctx.drawImage(cvs, 0, 0);
+                dctx.filter = 'none';
+                dctx.globalCompositeOperation = 'source-over';
+            }
+            requestAnimationFrame(renderDust);
+        }
+
+        window.addEventListener('resize', resize);
+        window.regenerate = regenerate; 
+        resize(); initDust(); renderDust();
+
+    })();
+    </script>
+</body>
+</html>
