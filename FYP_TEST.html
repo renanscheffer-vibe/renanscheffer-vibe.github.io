@@ -421,6 +421,7 @@
                                         muted={isMuted} // Controlled by effect
                                         className="h-full w-full object-cover"
                                         onClick={toggleMute}
+                                        preload="auto"
                                     />
                                 </div>
                             ))}
@@ -437,6 +438,7 @@
                                 className="h-full w-full object-cover"
                                 onClick={toggleMute}
                                 onError={handleVideoError}
+                                preload="auto"
                             />
                         ) : (
                             <div className="h-full w-full flex flex-col items-center justify-center bg-zinc-900 text-zinc-500 p-8 text-center">
@@ -445,6 +447,8 @@
                             </div>
                         )
                     )}
+
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60 pointer-events-none" />
 
                     {/* Gradient Overlay - Dynamic based on isExpanded */}
                     <div 
@@ -476,7 +480,17 @@
                     {/* Captions */}
                     <div className="absolute bottom-6 left-4 right-16 z-10 drop-shadow-md pointer-events-none">
                         <div className="flex flex-col gap-2">
-                            {/* Pagination Dots removed from here to prevent duplication */}
+                            {/* Pagination Dots for Carousel */}
+                            {item.type === 'carousel' && (
+                                <div className="flex gap-1.5 mb-1">
+                                    {item.slides.map((_, idx) => (
+                                        <div 
+                                            key={idx} 
+                                            className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeSlide ? 'w-1.5 bg-[#e8e5e0]' : 'w-1.5 bg-[#e8e5e0]/40'}`} 
+                                        />
+                                    ))}
+                                </div>
+                            )}
                             
                             <div 
                                 className="pointer-events-auto cursor-pointer"
