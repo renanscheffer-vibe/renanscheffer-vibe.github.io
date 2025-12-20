@@ -1,0 +1,422 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Heart, MessageCircle, Volume2, VolumeX, ChevronDown, UserPlus, Check, Send, ExternalLink, ArrowRight, AlertCircle } from 'lucide-react';
+
+// --- CONFIGURATION ---
+const CONTENT_DATA = [
+  {
+    id: 'welcome',
+    type: 'welcome',
+    company: "Nickelodeon",
+    managerName: "Hiring Manager",
+    message: "I hand-picked these clips specifically for you to showcase how my 8.5 years at Nickelodeon can translate to your team's vision.",
+    // Solid Core Blue
+    gradient: "bg-[#0d72e4]"
+  },
+  {
+    id: 1,
+    type: 'carousel', // Changed to carousel
+    title: 'Dora & The Search for Sol Dorado',
+    description: 'Motion Poster Series: Character reveals for the theatrical release.',
+    likes: '18.5K',
+    comments: '542',
+    slides: [
+      {
+        id: 'dora',
+        // Changed .mov to .mp4 for better browser support
+        url: 'https://res.cloudinary.com/dqilx3mrs/video/upload/v1766209998/DSD_Character_Poster_Dora_v2_lahirv.mp4',
+        type: 'video/mp4'
+      },
+      {
+        id: 'diego',
+        url: 'https://res.cloudinary.com/dqilx3mrs/video/upload/v1766209964/DSD_Character_Poster_Diego_v2_vhlybh.mp4',
+        type: 'video/mp4'
+      },
+      {
+        id: 'boots',
+        // Changed .mov to .mp4
+        url: 'https://res.cloudinary.com/dqilx3mrs/video/upload/v1766210081/DSD_Character_Poster_Boots_ydah6a.mp4',
+        type: 'video/mp4'
+      },
+      {
+        id: 'naiya',
+        // Changed .mov to .mp4
+        url: 'https://res.cloudinary.com/dqilx3mrs/video/upload/v1766210082/DSD_Character_Poster_Naiya_x4nemg.mp4',
+        type: 'video/mp4'
+      }
+    ]
+  },
+  {
+    id: 2,
+    type: 'video',
+    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    title: 'Kids Choice Awards 2023',
+    description: 'Directing vertical-first content for the biggest night in slime.',
+    likes: '45.2K',
+    comments: '1.2K'
+  },
+  {
+    id: 3,
+    type: 'video',
+    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    title: 'Social Series: Creator Spotlight',
+    description: 'Typography and motion design for cross-platform engagement.',
+    likes: '8.9K',
+    comments: '210'
+  },
+  {
+    id: 4,
+    type: 'video',
+    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    title: 'Viral Campaign: Summer Vibes',
+    description: 'Short-form storytelling that drove 2M+ organic views.',
+    likes: '22.1K',
+    comments: '890'
+  },
+  {
+    id: 5,
+    type: 'video',
+    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+    title: 'Music Video: Kinetic Typography',
+    description: 'Art direction and animation for emerging artist showcase.',
+    likes: '15.8K',
+    comments: '340'
+  },
+  {
+    id: 'outro',
+    type: 'outro',
+    // Solid Core Blue for consistency with Welcome
+    gradient: "bg-[#0d72e4]"
+  }
+];
+
+const VideoItem = ({ item, isActive, isMuted, toggleMute }) => {
+  const videoRef = useRef(null);
+  const carouselRef = useRef(null);
+  const slideRefs = useRef([]);
+  
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  // --- STANDARD VIDEO LOGIC ---
+  useEffect(() => {
+    if (item.type === 'video' && videoRef.current && !hasError) {
+      if (isActive) {
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            if (error.name !== 'AbortError') {
+                console.warn("Autoplay blocked. Muting.");
+                if (videoRef.current) {
+                    videoRef.current.muted = true;
+                    videoRef.current.play().catch(e => console.error(e));
+                }
+            }
+          });
+        }
+      } else {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+    }
+  }, [isActive, hasError, item.type]);
+
+  // Sync mute state for standard video
+  useEffect(() => {
+     if(item.type === 'video' && videoRef.current) {
+         videoRef.current.muted = isMuted;
+     }
+  }, [isMuted, item.type]);
+
+  // --- CAROUSEL LOGIC ---
+  const handleCarouselScroll = () => {
+    if (!carouselRef.current) return;
+    const index = Math.round(carouselRef.current.scrollLeft / carouselRef.current.clientWidth);
+    if (index !== activeSlide) setActiveSlide(index);
+  };
+
+  useEffect(() => {
+    if (item.type === 'carousel') {
+      slideRefs.current.forEach((vid, idx) => {
+        if (!vid) return;
+        
+        // Mute state sync
+        vid.muted = isMuted;
+
+        if (isActive && idx === activeSlide) {
+          const p = vid.play();
+          if (p !== undefined) {
+            p.catch(e => {
+               if (e.name !== 'AbortError') {
+                 vid.muted = true;
+                 vid.play().catch(console.error);
+               }
+            });
+          }
+        } else {
+          vid.pause();
+          vid.currentTime = 0;
+        }
+      });
+    }
+  }, [isActive, activeSlide, isMuted, item.type]);
+
+
+  const handleVideoError = () => {
+    console.error(`Video failed to load: ${item.url}`);
+    setHasError(true);
+  };
+
+  // --- RENDERERS ---
+
+  if (item.type === 'welcome') {
+    return (
+      <div className={`relative h-full w-full flex flex-col items-center justify-between p-6 text-center ${item.gradient}`}>
+        <div className="flex-shrink-0 mt-4 flex flex-col items-center">
+          <div className="w-14 h-14 bg-[#e8e5e0] rounded-full flex items-center justify-center shadow-[4px_4px_0px_rgba(30,29,30,0.5)]">
+            <UserPlus className="text-[#0d72e4] w-7 h-7" />
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col justify-center items-center w-full px-4">
+          <h1 className="text-2xl font-bold text-[#e8e5e0] mb-3 leading-tight uppercase tracking-tight drop-shadow-md font-heading">
+            HI {item.managerName}!
+          </h1>
+          <p className="text-[#e8e5e0] text-sm italic font-medium leading-relaxed drop-shadow-sm font-body max-w-xs">
+            "{item.message}"
+          </p>
+        </div>
+        <div className="flex-shrink-0 mb-8 animate-bounce flex flex-col items-center opacity-100">
+          <p className="text-[#e8e5e0] text-[9px] font-black uppercase tracking-[0.3em] mb-2 font-heading">Swipe Up to Begin</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (item.type === 'outro') {
+    return (
+      <div className={`relative h-full w-full flex flex-col items-center justify-center p-6 text-center ${item.gradient}`}>
+        <div className="bg-[#1e1d1e]/10 backdrop-blur-sm p-8 rounded-[2.5rem] border border-[#e8e5e0]/20 shadow-2xl w-full max-w-sm flex flex-col items-center">
+            <div className="w-16 h-16 bg-[#e8e5e0] rounded-full flex items-center justify-center shadow-[4px_4px_0px_rgba(30,29,30,0.5)] mb-6">
+                <Check className="text-[#0d72e4] w-8 h-8" strokeWidth={4} />
+            </div>
+            <h1 className="text-2xl font-black text-[#e8e5e0] mb-2 leading-none uppercase tracking-tighter drop-shadow-md font-heading">
+                LET'S WORK<br/>TOGETHER
+            </h1>
+            <p className="text-[#e8e5e0]/90 text-xs font-bold font-body mb-8 max-w-[200px]">
+                Ready to bring this level of creative direction to your team?
+            </p>
+            <div className="flex flex-col gap-4 w-full">
+                <a href="https://renanscheffer.com/" target="_blank" rel="noopener noreferrer" className="group bg-[#e8e5e0] text-[#0d72e4] py-4 px-6 rounded-2xl font-black uppercase tracking-widest shadow-[4px_4px_0px_rgba(30,29,30,0.3)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_rgba(30,29,30,0.3)] transition-all font-heading text-xs flex items-center justify-center gap-2">
+                    <ExternalLink size={16} className="mb-0.5" />
+                    Full Portfolio
+                </a>
+                <a href="https://www.renanscheffer.com/contact" target="_blank" rel="noopener noreferrer" className="group bg-[#1e1d1e] text-[#e8e5e0] py-4 px-6 rounded-2xl font-black uppercase tracking-widest shadow-[4px_4px_0px_rgba(232,229,224,0.3)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_rgba(232,229,224,0.3)] transition-all font-heading text-xs flex items-center justify-center gap-2">
+                    <ArrowRight size={16} className="mb-0.5" />
+                    Get In Touch
+                </a>
+            </div>
+        </div>
+        <div className="absolute bottom-8 opacity-60">
+             <p className="text-[#e8e5e0] text-[10px] font-black font-heading tracking-widest">RENAN SCHEFFER © 2024</p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- SHARED VIDEO/CAROUSEL UI ---
+  return (
+    <div className="relative h-full w-full bg-[#1e1d1e] overflow-hidden group">
+      
+      {/* MEDIA CONTAINER */}
+      {item.type === 'carousel' ? (
+        <div 
+          ref={carouselRef}
+          onScroll={handleCarouselScroll}
+          className="flex h-full w-full overflow-x-auto snap-x snap-mandatory no-scrollbar"
+        >
+          {item.slides.map((slide, idx) => (
+            <div key={idx} className="h-full w-full flex-shrink-0 snap-center bg-black relative">
+               <video
+                  ref={el => slideRefs.current[idx] = el}
+                  src={slide.url}
+                  loop
+                  playsInline
+                  muted={isMuted} // Controlled by effect
+                  className="h-full w-full object-cover"
+                  onClick={toggleMute}
+               />
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* SINGLE VIDEO */
+        !hasError ? (
+          <video
+            ref={videoRef}
+            src={item.url}
+            loop
+            muted={isMuted}
+            playsInline
+            className="h-full w-full object-cover"
+            onClick={toggleMute}
+            onError={handleVideoError}
+          />
+        ) : (
+          <div className="h-full w-full flex flex-col items-center justify-center bg-zinc-900 text-zinc-500 p-8 text-center">
+              <AlertCircle size={48} className="mb-4 opacity-50" />
+              <p className="text-sm font-bold">Video Unavailable</p>
+          </div>
+        )
+      )}
+
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60 pointer-events-none" />
+
+      {/* Sidebar Controls */}
+      <div className="absolute right-3 bottom-6 flex flex-col items-center space-y-6 z-20">
+        <div className="flex flex-col items-center drop-shadow-md">
+          <button onClick={() => setIsLiked(!isLiked)} className="active:scale-75 transition-transform duration-100">
+            <Heart className={`w-7 h-7 ${isLiked ? 'fill-[#ee5bea] text-[#ee5bea]' : 'text-[#e8e5e0]'}`} strokeWidth={2.5} />
+          </button>
+        </div>
+        <div className="flex flex-col items-center drop-shadow-md">
+          <button onClick={() => setCommentOpen(true)} className="active:scale-75 transition-transform duration-100">
+            <MessageCircle className="w-7 h-7 text-[#e8e5e0]" strokeWidth={2.5} />
+          </button>
+        </div>
+        <button onClick={toggleMute} className="mt-2 opacity-70 hover:opacity-100 transition-opacity drop-shadow-md">
+          {isMuted ? <VolumeX className="w-5 h-5 text-[#e8e5e0]" /> : <Volume2 className="w-5 h-5 text-[#e8e5e0]" />}
+        </button>
+      </div>
+
+      {/* Captions */}
+      <div className="absolute bottom-6 left-4 right-16 z-10 drop-shadow-md pointer-events-none">
+        <div className="flex flex-col gap-2">
+          {/* Pagination Dots for Carousel */}
+          {item.type === 'carousel' && (
+            <div className="flex gap-1.5 mb-1">
+              {item.slides.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeSlide ? 'w-4 bg-[#e8e5e0]' : 'w-1.5 bg-[#e8e5e0]/40'}`} 
+                />
+              ))}
+            </div>
+          )}
+          
+          <div>
+            <p className="text-sm font-bold mb-1 line-clamp-2 font-body text-[#e8e5e0]">{item.title}</p>
+            <p className="text-xs text-[#e8e5e0]/90 line-clamp-2 leading-tight font-medium font-body max-w-[85%]">
+              {item.description}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Comments Drawer */}
+      {commentOpen && (
+        <div className="absolute inset-0 bg-[#1e1d1e]/60 z-50 flex flex-col justify-end">
+          <div className="bg-[#1e1d1e] rounded-t-[2rem] p-6 h-[60%] overflow-hidden flex flex-col shadow-2xl border-t border-[#e8e5e0]/10">
+            <div className="flex justify-between items-center mb-6 border-b border-[#e8e5e0]/10 pb-4">
+              <span className="text-[#e8e5e0] text-[11px] font-black uppercase tracking-widest font-heading">Comments</span>
+              <button onClick={() => setCommentOpen(false)} className="text-[#e8e5e0]/50 text-sm font-black hover:text-[#e8e5e0]">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-5"></div>
+            <div className="mt-4 pt-4 border-t border-[#e8e5e0]/10">
+               <div className="flex items-center gap-3 bg-[#e8e5e0]/5 rounded-2xl px-4 py-3">
+                  <input type="text" placeholder="Add a comment..." className="bg-transparent flex-1 text-[#e8e5e0] text-xs outline-none font-medium font-body placeholder-[#e8e5e0]/30" />
+                  <Send className="w-4 h-4 text-[#0d72e4] cursor-pointer" />
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function App() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(true); // Default muted
+  const containerRef = useRef(null);
+
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    const index = Math.round(containerRef.current.scrollTop / containerRef.current.clientHeight);
+    if (index !== activeIndex) setActiveIndex(index);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-[#1e1d1e] flex flex-col items-center justify-center font-sans overflow-hidden">
+      
+      {/* 9:16 Aspect Ratio Wrapper */}
+      <div className="relative h-full aspect-[9/16] max-h-screen shadow-[0_0_120px_rgba(13,114,228,0.1)] overflow-hidden bg-[#1e1d1e] flex flex-col transition-all duration-500 box-content ring-1 ring-[#e8e5e0]/10">
+        
+        {/* Vertical Feed */}
+        <div 
+          ref={containerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-scroll snap-y snap-mandatory no-scrollbar scroll-smooth relative"
+        >
+          {CONTENT_DATA.map((item, index) => (
+            <div key={item.id} className="h-full w-full snap-start snap-always">
+              <VideoItem 
+                item={item} 
+                isActive={index === activeIndex} 
+                isMuted={isMuted}
+                toggleMute={() => setIsMuted(!isMuted)}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Tab Bar - Custom Branding */}
+        <div className="h-16 w-full bg-[#1e1d1e] border-t border-[#e8e5e0]/10 flex items-center justify-around px-2 z-50">
+           <div className="flex flex-col items-center text-[#e8e5e0]">
+              <div className="w-5 h-5 rounded-[4px] border-2 border-[#e8e5e0] mb-1 shadow-[4px_4px_0px_rgba(232,229,224,0.1)]" />
+              <span className="text-[8px] font-black uppercase tracking-tighter font-heading">Home</span>
+           </div>
+           <a href="https://renanscheffer.com/" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-[#e8e5e0]/40 transition-colors hover:text-[#e8e5e0] cursor-pointer">
+              <div className="w-5 h-5 rounded-[4px] border-2 border-current mb-1" />
+              <span className="text-[8px] font-black uppercase tracking-tighter font-heading">Work</span>
+           </a>
+           <div className="group relative">
+              <div className="relative px-4 py-2 bg-[#0d72e4] rounded-xl flex items-center justify-center shadow-[4px_4px_0px_rgba(13,114,228,0.3)] active:scale-90 transition-transform cursor-pointer border border-[#e8e5e0]/10">
+                  <span className="text-[#e8e5e0] font-black text-xl leading-none font-heading">+</span>
+              </div>
+           </div>
+           <a href="https://www.renanscheffer.com/s/RenanScheffer_Resume_2025-Web.pdf" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-[#e8e5e0]/40 transition-colors hover:text-[#e8e5e0] cursor-pointer">
+              <div className="w-5 h-5 rounded-[4px] border-2 border-current mb-1" />
+              <span className="text-[8px] font-black uppercase tracking-tighter font-heading">Res</span>
+           </a>
+           <a href="https://www.renanscheffer.com/contact" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-[#e8e5e0]/40 transition-colors hover:text-[#e8e5e0] cursor-pointer">
+              <div className="w-5 h-5 rounded-[4px] border-2 border-current mb-1" />
+              <span className="text-[8px] font-black uppercase tracking-tighter font-heading">Msg</span>
+           </a>
+        </div>
+      </div>
+
+      {/* Desktop Hint - Styled */}
+      <div className="hidden lg:block absolute left-12 bottom-12 max-w-[180px]">
+        <div className="bg-[#1e1d1e]/80 backdrop-blur-md p-4 rounded-2xl border border-[#e8e5e0]/10 text-[#e8e5e0]/60 text-[10px] leading-relaxed font-body">
+          <p className="text-[#0d72e4] mb-2 uppercase tracking-widest font-black font-heading">Desktop View</p>
+          <p>Swipe or scroll vertically to explore work.</p>
+        </div>
+      </div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@0,100..900;1,100..900&display=swap');
+        
+        .font-heading {
+          font-family: 'Mazurquica VF SemiBold', 'Epilogue', sans-serif;
+        }
+        .font-body {
+          font-family: 'Epilogue', sans-serif;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+    </div>
+  );
+}
