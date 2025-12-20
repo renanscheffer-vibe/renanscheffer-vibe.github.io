@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Portfolio For You</title>
     
+    <!-- Preload Custom Font to prevent layout shift -->
+    <link rel="preload" href="https://static1.squarespace.com/static/5f3801146d119504216251db/t/6946ced7bb94117bfb216848/1766248151715/Mazurquica-Pesada.otf" as="font" type="font/otf" crossorigin>
+
+    <!-- Optimize Google Fonts Loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- display=block ensures text stays hidden until font is ready, preventing the visual 'snap' -->
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@0,100..900;1,100..900&family=Syne:wght@400..800&display=block" rel="stylesheet">
+
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -17,10 +26,16 @@
     
     <!-- Custom Fonts -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@0,100..900;1,100..900&display=swap');
-        
+        /* Loading Custom Mazurquica Font */
+        @font-face {
+            font-family: 'Mazurquica VF';
+            src: url('https://static1.squarespace.com/static/5f3801146d119504216251db/t/6946ced7bb94117bfb216848/1766248151715/Mazurquica-Pesada.otf') format('opentype');
+            font-weight: 100 900;
+            font-display: block; /* Ensures no fallback font is shown, preventing layout shifts */
+        }
+
         .font-heading {
-            font-family: 'Mazurquica VF SemiBold', 'Epilogue', sans-serif;
+            font-family: 'Mazurquica VF', 'Syne', 'Epilogue', sans-serif;
         }
         .font-body {
             font-family: 'Epilogue', sans-serif;
@@ -34,6 +49,17 @@
         .no-scrollbar {
             -ms-overflow-style: none;  /* IE and Edge */
             scrollbar-width: none;  /* Firefox */
+        }
+
+        /* Smooth Fade In to mask initial load */
+        #root {
+            opacity: 0;
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
@@ -86,7 +112,7 @@
                 company: "Nickelodeon",
                 managerName: "Hiring Manager",
                 message: "I hand-picked these clips specifically for you to showcase how my 8.5 years at Nickelodeon can translate to your team's vision.",
-                gradient: "bg-[#0d72e4]"
+                bgImage: "https://res.cloudinary.com/dqilx3mrs/image/upload/v1766256725/RSC_FYP_BACKGROUND_2_n9julp.png"
             },
             {
                 id: 1,
@@ -170,6 +196,7 @@
             const [isLiked, setIsLiked] = useState(false);
             const [commentOpen, setCommentOpen] = useState(false);
             const [hasError, setHasError] = useState(false);
+            const [bgLoaded, setBgLoaded] = useState(false);
 
             // --- STANDARD VIDEO LOGIC ---
             useEffect(() => {
@@ -234,6 +261,17 @@
                 }
             }, [isActive, activeSlide, isMuted, item.type]);
 
+            // --- BACKGROUND IMAGE PRELOAD ---
+            useEffect(() => {
+                if (item.type === 'welcome' && item.bgImage) {
+                    const img = new Image();
+                    img.onload = () => {
+                        setBgLoaded(true);
+                    };
+                    img.src = item.bgImage;
+                }
+            }, [item.type, item.bgImage]);
+
             const handleVideoError = () => {
                 console.error(`Video failed to load: ${item.url}`);
                 setHasError(true);
@@ -243,22 +281,46 @@
 
             if (item.type === 'welcome') {
                 return (
-                    <div className={`relative h-full w-full flex flex-col items-center justify-between p-6 text-center ${item.gradient}`}>
-                        <div className="flex-shrink-0 mt-4 flex flex-col items-center">
-                            <div className="w-14 h-14 bg-[#e8e5e0] rounded-full flex items-center justify-center shadow-[4px_4px_0px_rgba(30,29,30,0.5)]">
-                                <UserPlus className="text-[#0d72e4] w-7 h-7" />
-                            </div>
+                    <div 
+                        className={`relative h-full w-full flex flex-col items-center justify-between text-center transition-opacity duration-1000 ease-out ${bgLoaded ? 'opacity-100' : 'opacity-0'}`}
+                        style={{ 
+                            padding: '6cqw',
+                            backgroundImage: `url(${item.bgImage})`,
+                            backgroundSize: 'cover',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'center'
+                        }}
+                    >
+                        <div className="flex-shrink-0" style={{ marginTop: '4cqh' }}>
+                            {/* Icon Removed */}
                         </div>
-                        <div className="flex-1 flex flex-col justify-center items-center w-full px-4">
-                            <h1 className="text-2xl font-bold text-[#e8e5e0] mb-3 leading-tight uppercase tracking-tight drop-shadow-md font-heading">
+                        <div 
+                            className="flex-1 flex flex-col justify-center items-center w-full"
+                            style={{ paddingTop: '15cqh' }}
+                        >
+                            <h1 
+                                className="font-bold text-[#0d72e4] leading-none uppercase tracking-normal font-heading"
+                                style={{ fontSize: '9cqw', marginBottom: '3cqh' }}
+                            >
                                 HI {item.managerName}!
                             </h1>
-                            <p className="text-[#e8e5e0] text-sm italic font-medium leading-relaxed drop-shadow-sm font-body max-w-xs">
+                            <p 
+                                className="text-[#1e1d1e] italic font-medium leading-relaxed drop-shadow-sm font-body"
+                                style={{ fontSize: '4.5cqw', maxWidth: '90%' }}
+                            >
                                 "{item.message}"
                             </p>
                         </div>
-                        <div className="flex-shrink-0 mb-8 animate-bounce flex flex-col items-center opacity-100">
-                            <p className="text-[#e8e5e0] text-[9px] font-black uppercase tracking-[0.3em] mb-2 font-heading">Swipe Up to Begin</p>
+                        <div 
+                            className="flex-shrink-0 animate-bounce flex flex-col items-center opacity-100"
+                            style={{ marginBottom: '2cqh' }}
+                        >
+                            <p 
+                                className="text-[#1e1d1e] font-bold uppercase tracking-[0.3em] font-body"
+                                style={{ fontSize: '3.5cqw', marginBottom: '1cqh' }}
+                            >
+                                Swipe Up to Begin
+                            </p>
                         </div>
                     </div>
                 );
@@ -266,30 +328,62 @@
 
             if (item.type === 'outro') {
                 return (
-                    <div className={`relative h-full w-full flex flex-col items-center justify-center p-6 text-center ${item.gradient}`}>
-                        <div className="bg-[#1e1d1e]/10 backdrop-blur-sm p-8 rounded-[2.5rem] border border-[#e8e5e0]/20 shadow-2xl w-full max-w-sm flex flex-col items-center">
-                            <div className="w-16 h-16 bg-[#e8e5e0] rounded-full flex items-center justify-center shadow-[4px_4px_0px_rgba(30,29,30,0.5)] mb-6">
-                                <Check className="text-[#0d72e4] w-8 h-8" strokeWidth={4} />
+                    <div 
+                        className={`relative h-full w-full flex flex-col items-center justify-center text-center ${item.gradient}`}
+                        style={{ padding: '6cqw' }}
+                    >
+                        <div 
+                            className="bg-[#1e1d1e]/10 backdrop-blur-sm rounded-[2.5rem] border border-[#e8e5e0]/20 shadow-2xl w-full flex flex-col items-center"
+                            style={{ padding: '8cqw', maxWidth: '85cqw' }}
+                        >
+                            <div 
+                                className="bg-[#e8e5e0] rounded-full flex items-center justify-center shadow-[4px_4px_0px_rgba(30,29,30,0.5)]"
+                                style={{ width: '16cqw', height: '16cqw', marginBottom: '4cqh' }}
+                            >
+                                <Check className="text-[#0d72e4]" strokeWidth={4} style={{ width: '8cqw', height: '8cqw' }} />
                             </div>
-                            <h1 className="text-2xl font-black text-[#e8e5e0] mb-2 leading-none uppercase tracking-tighter drop-shadow-md font-heading">
+                            <h1 
+                                className="font-black text-[#e8e5e0] leading-none uppercase tracking-tighter drop-shadow-md font-heading"
+                                style={{ fontSize: '9cqw', marginBottom: '1.5cqh' }}
+                            >
                                 LET'S WORK<br/>TOGETHER
                             </h1>
-                            <p className="text-[#e8e5e0]/90 text-xs font-bold font-body mb-8 max-w-[200px]">
+                            <p 
+                                className="text-[#e8e5e0]/90 font-bold font-body"
+                                style={{ fontSize: '3.5cqw', marginBottom: '6cqh', maxWidth: '60%' }}
+                            >
                                 Ready to bring this level of creative direction to your team?
                             </p>
-                            <div className="flex flex-col gap-4 w-full">
-                                <a href="https://renanscheffer.com/" target="_blank" rel="noopener noreferrer" className="group bg-[#e8e5e0] text-[#0d72e4] py-4 px-6 rounded-2xl font-black uppercase tracking-widest shadow-[4px_4px_0px_rgba(30,29,30,0.3)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_rgba(30,29,30,0.3)] transition-all font-heading text-xs flex items-center justify-center gap-2">
-                                    <ExternalLink size={16} className="mb-0.5" />
+                            <div className="flex flex-col w-full" style={{ gap: '2cqh' }}>
+                                <a 
+                                    href="https://renanscheffer.com/" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="group bg-[#e8e5e0] text-[#0d72e4] rounded-2xl font-black uppercase tracking-widest shadow-[4px_4px_0px_rgba(30,29,30,0.3)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_rgba(30,29,30,0.3)] transition-all font-heading flex items-center justify-center"
+                                    style={{ fontSize: '3cqw', padding: '4cqw 6cqw', gap: '2cqw' }}
+                                >
+                                    <ExternalLink className="mb-0.5" style={{ width: '4cqw', height: '4cqw' }} />
                                     Full Portfolio
                                 </a>
-                                <a href="https://www.renanscheffer.com/contact" target="_blank" rel="noopener noreferrer" className="group bg-[#1e1d1e] text-[#e8e5e0] py-4 px-6 rounded-2xl font-black uppercase tracking-widest shadow-[4px_4px_0px_rgba(232,229,224,0.3)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_rgba(232,229,224,0.3)] transition-all font-heading text-xs flex items-center justify-center gap-2">
-                                    <ArrowRight size={16} className="mb-0.5" />
+                                <a 
+                                    href="https://www.renanscheffer.com/contact" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="group bg-[#1e1d1e] text-[#e8e5e0] rounded-2xl font-black uppercase tracking-widest shadow-[4px_4px_0px_rgba(232,229,224,0.3)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_rgba(232,229,224,0.3)] transition-all font-heading flex items-center justify-center"
+                                    style={{ fontSize: '3cqw', padding: '4cqw 6cqw', gap: '2cqw' }}
+                                >
+                                    <ArrowRight className="mb-0.5" style={{ width: '4cqw', height: '4cqw' }} />
                                     Get In Touch
                                 </a>
                             </div>
                         </div>
-                        <div className="absolute bottom-8 opacity-60">
-                            <p className="text-[#e8e5e0] text-[10px] font-black font-heading tracking-widest">RENAN SCHEFFER © 2024</p>
+                        <div className="absolute opacity-60" style={{ bottom: '4cqh' }}>
+                            <p 
+                                className="text-[#e8e5e0] font-black font-heading tracking-widest"
+                                style={{ fontSize: '2.5cqw' }}
+                            >
+                                RENAN SCHEFFER © 2024
+                            </p>
                         </div>
                     </div>
                 );
@@ -421,7 +515,10 @@
                 <div className="fixed inset-0 bg-[#1e1d1e] flex flex-col items-center justify-center font-sans overflow-hidden">
                     
                     {/* 9:16 Aspect Ratio Wrapper */}
-                    <div className="relative h-full aspect-[9/16] max-h-screen shadow-[0_0_120px_rgba(13,114,228,0.1)] overflow-hidden bg-[#1e1d1e] flex flex-col transition-all duration-500 box-content ring-1 ring-[#e8e5e0]/10">
+                    <div 
+                        className="relative h-full aspect-[9/16] max-h-screen shadow-[0_0_120px_rgba(13,114,228,0.1)] overflow-hidden bg-[#1e1d1e] flex flex-col transition-all duration-500 box-content ring-1 ring-[#e8e5e0]/10"
+                        style={{ containerType: 'size' }}
+                    >
                         
                         {/* Vertical Feed */}
                         <div 
@@ -445,24 +542,20 @@
                         <div className="h-16 w-full bg-[#1e1d1e] border-t border-[#e8e5e0]/10 flex items-center justify-around px-2 z-50">
                             <div className="flex flex-col items-center text-[#e8e5e0]">
                                 <div className="w-5 h-5 rounded-[4px] border-2 border-[#e8e5e0] mb-1 shadow-[4px_4px_0px_rgba(232,229,224,0.1)]" />
-                                <span className="text-[8px] font-black uppercase tracking-tighter font-heading">Home</span>
+                                <span className="text-[8px] font-bold uppercase tracking-tighter font-body">Home</span>
                             </div>
                             <a href="https://renanscheffer.com/" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-[#e8e5e0]/40 transition-colors hover:text-[#e8e5e0] cursor-pointer">
                                 <div className="w-5 h-5 rounded-[4px] border-2 border-current mb-1" />
-                                <span className="text-[8px] font-black uppercase tracking-tighter font-heading">Work</span>
+                                <span className="text-[8px] font-bold uppercase tracking-tighter font-body">Work</span>
                             </a>
-                            <div className="group relative">
-                                <div className="relative px-4 py-2 bg-[#0d72e4] rounded-xl flex items-center justify-center shadow-[4px_4px_0px_rgba(13,114,228,0.3)] active:scale-90 transition-transform cursor-pointer border border-[#e8e5e0]/10">
-                                    <span className="text-[#e8e5e0] font-black text-xl leading-none font-heading">+</span>
-                                </div>
-                            </div>
+                            {/* Blue + Icon Removed */}
                             <a href="https://www.renanscheffer.com/s/RenanScheffer_Resume_2025-Web.pdf" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-[#e8e5e0]/40 transition-colors hover:text-[#e8e5e0] cursor-pointer">
                                 <div className="w-5 h-5 rounded-[4px] border-2 border-current mb-1" />
-                                <span className="text-[8px] font-black uppercase tracking-tighter font-heading">Res</span>
+                                <span className="text-[8px] font-bold uppercase tracking-tighter font-body">Resume</span>
                             </a>
                             <a href="https://www.renanscheffer.com/contact" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-[#e8e5e0]/40 transition-colors hover:text-[#e8e5e0] cursor-pointer">
                                 <div className="w-5 h-5 rounded-[4px] border-2 border-current mb-1" />
-                                <span className="text-[8px] font-black uppercase tracking-tighter font-heading">Msg</span>
+                                <span className="text-[8px] font-bold uppercase tracking-tighter font-body">Contact</span>
                             </a>
                         </div>
                     </div>
