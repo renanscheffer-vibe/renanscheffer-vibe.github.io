@@ -608,11 +608,11 @@
                 <div className="fixed inset-0 bg-[#1e1d1e] flex flex-col items-center justify-center font-sans overflow-hidden">
                     
                     {/* Wrapper to hold Frame + Side Controls centered together */}
-                    <div className="relative h-full max-h-screen flex items-center justify-center">
+                    <div className="relative h-full max-h-screen flex items-center justify-center p-4"> {/* Added p-4 to ensure padding on desktop */}
                         
                         {/* 9:16 Aspect Ratio Wrapper (The Phone) */}
                         <div 
-                            className="relative h-full aspect-[9/16] max-h-screen shadow-[0_0_120px_rgba(13,114,228,0.1)] overflow-hidden bg-[#1e1d1e] flex flex-col transition-all duration-500 box-content ring-1 ring-[#e8e5e0]/10"
+                            className="relative h-full aspect-[9/16] max-h-[90vh] shadow-[0_0_120px_rgba(13,114,228,0.1)] overflow-hidden bg-[#1e1d1e] flex flex-col transition-all duration-500 ring-1 ring-[#e8e5e0]/10 md:border-[12px] md:border-zinc-900 md:rounded-[2.5rem]"
                             style={{ containerType: 'size' }}
                         >
                             
