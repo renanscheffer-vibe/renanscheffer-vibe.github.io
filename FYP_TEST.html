@@ -542,17 +542,7 @@
                     {/* Captions */}
                     <div className="absolute bottom-6 left-4 right-16 z-10 drop-shadow-md pointer-events-none">
                         <div className="flex flex-col gap-2">
-                            {/* Pagination Dots for Carousel */}
-                            {item.type === 'carousel' && (
-                                <div className="flex gap-1.5 mb-1">
-                                    {item.slides.map((_, idx) => (
-                                        <div 
-                                            key={idx} 
-                                            className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeSlide ? 'w-1.5 bg-[#e8e5e0]' : 'w-1.5 bg-[#e8e5e0]/40'}`} 
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                            {/* Removed Pagination Dots Here */}
                             
                             <div 
                                 className="pointer-events-auto cursor-pointer"
