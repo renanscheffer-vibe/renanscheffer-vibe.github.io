@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ro Playable Ad</title>
+    
+    <!-- Required for MRAID compliant networks (AppLovin/Axon) -->
+    <script src="mraid.js"></script>
+
+    <style>
+        /* --- CUSTOM BRAND FONTS (BASE64 PLACEHOLDERS) --- */
+        @font-face {
+            font-family: 'RoBrandFont';
+            src: url('/* PASTE BASE64 REGULAR WOFF2/WOFF DATA HERE */') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'RoBrandFont';
+            src: url('/* PASTE BASE64 SEMIBOLD WOFF2/WOFF DATA HERE */') format('woff2');
+            font-weight: 600;
+            font-style: normal;
+        }
+
+        :root {
+            --brand-primary: #004D40; /* Ro-inspired deep green */
+            --brand-secondary: #475569; /* Brightened gradient color */
+            --bg-start: #1E293B; /* Brightened start for the gradient */
+            --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+            --glass-border-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, 0) 65%, rgba(255, 255, 255, 0.7) 100%);
+            --glass-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.3), inset 0 0 12px rgba(255, 255, 255, 0.08); /* Persistent shadow with subtle inner glow */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            /* Bulletproof viewport enforcement */
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'RoBrandFont', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            
+            /* Solid background color */
+            background-color: #283287;
+            
+            color: #ffffff; /* Switched back to white text */
+            touch-action: none; /* Prevents default browser scrolling */
+            /* Lock the body firmly to the viewport to prevent bounce & height miscalculations */
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        #ad-container {
+            /* Use absolute positioning for the layout container */
+            position: absolute;
+            inset: 0; /* Pins to all 4 corners */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px 20px;
+            overflow: hidden;
+        }
+
+        /* Header / Title */
+        .header {
+            text-align: center;
+            z-index: 10;
+            padding-top: 10%;
+        }
+
+        .logo-container {
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .ro-logo {
+            width: 70px;
+            height: auto;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2));
+        }
+
+        .header h1 {
+            font-size: 38px; /* Scaled up for hero treatment */
+            font-weight: 600; /* Set to Semibold */
+            line-height: 1.1;
+            letter-spacing: -0.5px; /* Tighter tracking for large text */
+            text-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Softened shadow for light mode */
+            margin-bottom: 8px;
+        }
+
+        .portrait-break {
+            display: block; /* Force the line break in vertical orientation */
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* 3D Carousel Scene */
+        #scene {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            /* perspective: 1200px; - REMOVED: Moving this to JS transform fixes the iOS blur bleed! */
+        }
+
+        /* Glass Cards */
+        .card {
+            position: absolute;
+            width: 260px;
+            height: 240px; /* Reduced from 320px */
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+            border-radius: 24px;
+            box-shadow: var(--glass-shadow);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            text-align: center;
+            will-change: transform, opacity;
+        }
+
+        /* Gradient Border Mask for Cards */
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            padding: 1px; /* This defines the border thickness */
+            background: var(--glass-border-gradient);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        /* Card Icon Base */
+        .card-icon {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            background: rgba(255,255,255,0.15);
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
+            will-change: opacity;
+        }
+
+        /* Gradient Border Mask for Icon Circles */
+        .card-icon::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            padding: 1px; /* This defines the border thickness */
+            background: var(--glass-border-gradient);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .card h2 {
+            font-size: 22px;
+            font-weight: 400; /* Changed to Regular weight (400) */
+            line-height: 1.3;
+            text-align: center;
+            padding: 0 10px;
+            will-change: opacity;
+        }
+
+        /* Call to Action */
+        #cta-container {
+            z-index: 10;
+            padding-bottom: 5%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        #cta-button {
+            background-color: #F1FDA6;
+            color: #1a1a1a;
+            font-family: 'RoBrandFont', system-ui, -apple-system, sans-serif;
+            font-size: 20px;
+            font-weight: 600; /* Set to Semibold */
+            padding: 16px 40px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #cta-button:active {
+            transform: scale(0.95);
+        }
+
+        /* Side Arrow Hint */
+        @keyframes swipe-hint {
+            0% { transform: translateY(15px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-15px); opacity: 0; }
+        }
+
+        .side-arrow {
+            position: absolute;
+            left: calc(50% + 140px); /* Positioned exactly right of the 260px wide box */
+            top: 50%;
+            margin-top: -24px;
+            width: 48px;
+            height: 48px;
+            color: #F1FDA6;
+            animation: swipe-hint 2s infinite ease-in-out;
+            z-index: 10;
+            pointer-events: none; /* Prevents the arrow from blocking user swipes */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .side-arrow svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* Responsive adjustments for Landscape */
+        @media (orientation: landscape) {
+            #ad-container {
+                flex-direction: row;
+                padding: 20px 40px;
+            }
+            .header {
+                padding-top: 0;
+                width: 30%;
+                text-align: left;
+            }
+            .logo-container {
+                justify-content: flex-start;
+                margin-bottom: 12px;
+            }
+            .header p {
+                justify-content: flex-start;
+            }
+            .portrait-break {
+                display: inline; /* Turn break back into a simple inline space when wide */
+            }
+            #scene {
+                width: 40%;
+            }
+            #cta-container {
+                padding-bottom: 0;
+                width: 30%;
+                justify-content: flex-end;
+            }
+            .card {
+                width: 280px; /* Increased to make landscape boxes wider */
+                height: 200px; /* Reduced from 280px */
+            }
+            .side-arrow {
+                left: calc(50% + 150px); /* Adjusted for the wider landscape box */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ad-container">
+        <!-- Header -->
+        <div class="header">
+            <!-- Inline SVG Ro Logo -->
+            <div class="logo-container">
+                <svg class="ro-logo" viewBox="0 0 100 40" xmlns="http://www.w3.org/2000/svg">
+                    <text x="50" y="30" font-family="'Times New Roman', Georgia, serif" font-size="38" font-style="italic" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="-1.5">ro</text>
+                </svg>
+            </div>
+            <h1>Swipe to see<br class="portrait-break"> what you get on Ro</h1>
+        </div>
+
+        <!-- 3D Carousel -->
+        <div id="scene">
+            <div class="card">
+                <div class="card-icon">📱</div>
+                <h2>Rx weight loss meds, 100% online</h2>
+            </div>
+            <div class="card">
+                <div class="card-icon">✅</div>
+                <h2>A range of FDA-approved GLP-1s</h2>
+            </div>
+            <div class="card">
+                <div class="card-icon">📋</div>
+                <h2>Free insurance check</h2>
+            </div>
+            <div class="card">
+                <div class="card-icon">👩‍⚕️</div>
+                <h2>On-demand provider support</h2>
+            </div>
+            
+            <!-- Duplicated cards for deeper 3D loop visibility (ensures 2 above and 2 below are always loaded) -->
+            <div class="card">
+                <div class="card-icon">📱</div>
+                <h2>Rx weight loss meds, 100% online</h2>
+            </div>
+            <div class="card">
+                <div class="card-icon">✅</div>
+                <h2>A range of FDA-approved GLP-1s</h2>
+            </div>
+            <div class="card">
+                <div class="card-icon">📋</div>
+                <h2>Free insurance check</h2>
+            </div>
+            <div class="card">
+                <div class="card-icon">👩‍⚕️</div>
+                <h2>On-demand provider support</h2>
+            </div>
+            
+            <!-- Side Scroll Hint Arrow -->
+            <div class="side-arrow" id="scroll-hint">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20V4M5 11l7-7 7 7"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div id="cta-container">
+            <button id="cta-button" onclick="clickThrough()">Get Started</button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * MRAID Initialization & Click-through Logic
+         */
+        var isFirstInteraction = false;
+
+        // Custom function to handle direct-click app store redirect (compliant with MRAID protocols)
+        function clickThrough() {
+            var clickUrl = "https://ro.co"; // Replace with tracking macro if required by DSP
+            
+            if (typeof mraid !== 'undefined' && mraid.getState() !== 'loading') {
+                mraid.open(clickUrl);
+            } else {
+                window.open(clickUrl, '_blank');
+            }
+        }
+
+        function handleFirstInteraction() {
+            if (!isFirstInteraction) {
+                isFirstInteraction = true;
+                // Optional: Stop intro animations or start any allowed timers here
+                const hint = document.getElementById('scroll-hint');
+                if(hint) {
+                    hint.style.animation = 'none';
+                    hint.style.opacity = '0';
+                    hint.style.transition = 'opacity 0.3s ease';
+                }
+            }
+        }
+
+        function mraidIsReady() {
+            // MRAID is ready, safe to register events if needed
+            if (mraid.isViewable()) {
+                startAd();
+            } else {
+                mraid.addEventListener('viewableChange', function(viewable) {
+                    if (viewable) startAd();
+                });
+            }
+        }
+
+        if (typeof mraid !== 'undefined') {
+            if (mraid.getState() === 'loading') {
+                mraid.addEventListener('ready', mraidIsReady);
+            } else {
+                mraidIsReady();
+            }
+        } else {
+            // Fallback for local browser testing without MRAID
+            window.onload = startAd;
+        }
+
+        /**
+         * 3D Carousel Logic
+         */
+        function startAd() {
+            const scene = document.getElementById('scene');
+            const cards = document.querySelectorAll('.card');
+            
+            // FIX (Performance): Cache DOM queries once instead of 60 times a second
+            const cardsData = Array.from(cards).map(card => ({
+                el: card,
+                icon: card.querySelector('.card-icon'),
+                text: card.querySelector('h2')
+            }));
+            
+            let targetIndex = 0;
+            let animatedIndex = 0;
+            let dragStartY = 0;
+            let isDragging = false;
+            let dragOffset = 0;
+
+            // Touch & Mouse Events for Swiping
+            scene.addEventListener('pointerdown', (e) => {
+                isDragging = true;
+                dragStartY = e.clientY;
+                scene.setPointerCapture(e.pointerId);
+                handleFirstInteraction();
+            });
+
+            scene.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                
+                // FIX: Instead of using window.innerHeight which behaves differently across devices
+                // and retina displays, we use a fixed physical pixel distance for one card swipe.
+                // 120 pixels provides a buttery, responsive feel on mobile devices.
+                const swipeDistanceForOneCard = 120;
+                dragOffset = (e.clientY - dragStartY) / swipeDistanceForOneCard;
+            });
+
+            scene.addEventListener('pointerup', (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                // Snap to nearest card
+                let moveAmount = Math.round(dragOffset);
+                
+                // Add momentum if user did a quick small swipe
+                // Tweaked threshold slightly so tiny jitters don't accidently switch cards
+                if (Math.abs(dragOffset) > 0.15 && moveAmount === 0) {
+                    moveAmount = dragOffset > 0 ? 1 : -1;
+                }
+
+                targetIndex = targetIndex - moveAmount;
+                
+                // Infinite looping (clamping bounds removed)
+                dragOffset = 0;
+                scene.releasePointerCapture(e.pointerId);
+            });
+
+            // Prevent default drag behaviors
+            scene.addEventListener('dragstart', e => e.preventDefault());
+
+            // Render loop for smooth 3D interpolation
+            function renderLoop() {
+                // Lerp towards target (increased lerp speed slightly from 0.12 to 0.15 for snappier mobile response)
+                const activeIndex = targetIndex - dragOffset;
+                animatedIndex += (activeIndex - animatedIndex) * 0.15;
+                const totalCards = cardsData.length;
+
+                cardsData.forEach((item, i) => {
+                    // Infinite looping math
+                    let rawOffset = (i - animatedIndex) % totalCards;
+                    if (rawOffset < 0) rawOffset += totalCards; // Handle JS negative modulo
+                    
+                    let offset = rawOffset;
+                    if (offset > totalCards / 2) offset -= totalCards;
+
+                    const absOffset = Math.abs(offset);
+                    const opacity = Math.max(0, 1 - absOffset * 0.35); // Fade out far cards
+
+                    // FIX (Performance): Completely hide invisible cards so the mobile GPU 
+                    // doesn't try to render 'backdrop-filter: blur' on elements you can't even see.
+                    if (opacity <= 0.01) {
+                        item.el.style.visibility = 'hidden';
+                        return; // Skip expensive transform calculations for hidden cards
+                    }
+
+                    item.el.style.visibility = 'visible';
+
+                    // 3D Math (Vertical orientation)
+                    const translateY = offset * 95; // Decreased vertical spacing to bring boxes closer together
+                    
+                    // Pull the in-focus card forward onto its own plane to prevent intersection
+                    const zBump = Math.max(0, 1 - absOffset) * 80; 
+                    const translateZ = -absOffset * 140 + zBump; 
+                    
+                    const rotateX = -offset * 12; // Tilt inactive cards
+                    const scale = Math.max(0.4, 1 - absOffset * 0.15); // Shrink inactive cards
+                    const zIndex = Math.round((1 - absOffset) * 1000); // Higher precision to guarantee clean stacking
+
+                    // Calculate internal content opacity to fade text & icons completely out at the top/bottom extremes
+                    const contentOpacity = Math.max(0, 1 - (absOffset / 1.5));
+
+                    // FIX: Moving perspective(1200px) directly into the local transform fixes the iOS blur split bug!
+                    item.el.style.transform = `perspective(1200px) translate3d(0, ${translateY}px, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`;
+                    item.el.style.opacity = opacity.toFixed(3); // toFixed limits unnecessary precision reflows
+                    item.el.style.zIndex = zIndex;
+
+                    // Apply the opacity to the text content and icon
+                    if (item.icon) item.icon.style.opacity = contentOpacity.toFixed(3);
+                    if (item.text) item.text.style.opacity = contentOpacity.toFixed(3);
+                });
+
+                requestAnimationFrame(renderLoop);
+            }
+
+            // Start animation loop
+            renderLoop();
+        }
+    </script>
+</body>
+</html>
